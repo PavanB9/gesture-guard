@@ -61,18 +61,20 @@ into local `node_modules`. Nothing is installed globally beyond the prerequisite
 # 1. Frontend deps
 npm install
 
-# 2. Python engine — create the local venv and install requirements
-#    (use your Python 3.12 interpreter)
+# 2. Python engine — create the local venv with a Python 3.12 interpreter.
+#    Do NOT use a bare `python` if it is 3.13 (MediaPipe has no 3.13 wheels).
 cd src-backend
-py -3.12 -m venv .venv                 # Windows:  py -3.12 ...
-#  python3.12 -m venv .venv            # macOS
 
-.venv/Scripts/python -m pip install -r requirements.txt   # Windows
-#  .venv/bin/python -m pip install -r requirements.txt    # macOS
+# Windows (winget installs 3.12 here; adjust if yours differs):
+& "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+
+# macOS:
+#  python3.12 -m venv .venv
+#  .venv/bin/python -m pip install -r requirements.txt
 
 # 3. Fetch the MediaPipe model bundles once (~11 MB). Runtime stays offline after this.
-.venv/Scripts/python fetch_models.py   # Windows
-#  .venv/bin/python fetch_models.py     # macOS
+.venv\Scripts\python fetch_models.py     # Windows  (.venv/bin/python on macOS)
 cd ..
 ```
 
