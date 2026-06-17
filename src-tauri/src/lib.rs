@@ -33,6 +33,26 @@ fn find_free_port() -> u16 {
 fn kill_sidecar(app: &tauri::AppHandle) {
     if let Some(state) = app.try_state::<BackendState>() {
         if let Some(child) = state.child.lock().unwrap().take() {
+            // PyInstaller one-file binaries run as a bootloader parent + a real
+            // Python child, so `child.kill()` alone orphans the Python process.
+            // Tear down the whole tree first, then kill the direct child.
+            let pid = child.pid();
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                let _ = std::process::Command::new("taskkill")
+                    .args(["/F", "/T", "/PID", &pid.to_string()])
+                    .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
+                    .output();
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                // Kill child processes of the bootloader before the bootloader
+                // itself so the Python process does not get reparented away.
+                let _ = std::process::Command::new("pkill")
+                    .args(["-TERM", "-P", &pid.to_string()])
+                    .output();
+            }
             let _ = child.kill();
         }
     }
@@ -48,8 +68,8 @@ pub fn run() {
 
             let sidecar = app
                 .shell()
-                .sidecar("gesture-guard")
-                .expect("failed to create `gesture-guard` sidecar command")
+                .sidecar("privacy-engine")
+                .expect("failed to create `privacy-engine` sidecar command")
                 .args(["--host", "127.0.0.1", "--port", &port.to_string()]);
 
             let (mut rx, child) = sidecar

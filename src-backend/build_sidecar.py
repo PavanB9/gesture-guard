@@ -48,14 +48,21 @@ def main() -> None:
     )
 
     # 3. Copy to the target-triple name Tauri expects.
+    #    NOTE: the sidecar base name ("privacy-engine") must differ from the
+    #    Tauri app/Cargo package name ("gesture-guard"). Tauri copies externalBin
+    #    into the target dir with the triple stripped, so a matching name would
+    #    collide with the app binary and make the app spawn itself recursively.
     triple = target_triple()
     ext = ".exe" if platform.system() == "Windows" else ""
-    built = HERE / "dist" / f"gesture-guard{ext}"
+    built = HERE / "dist" / f"privacy-engine{ext}"
     if not built.exists():
         raise FileNotFoundError(f"build output not found: {built}")
 
     TAURI_BIN.mkdir(parents=True, exist_ok=True)
-    dest = TAURI_BIN / f"gesture-guard-{triple}{ext}"
+    # Drop any stale sidecar binaries from earlier builds/names.
+    for old in TAURI_BIN.glob("gesture-guard-*"):
+        old.unlink()
+    dest = TAURI_BIN / f"privacy-engine-{triple}{ext}"
     shutil.copy2(built, dest)
     print(f"\nSidecar ready: {dest}")
     print(f"  size: {dest.stat().st_size / 1_048_576:.1f} MiB")

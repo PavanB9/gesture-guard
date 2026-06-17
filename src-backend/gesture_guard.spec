@@ -46,7 +46,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="gesture-guard",
+    name="privacy-engine",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

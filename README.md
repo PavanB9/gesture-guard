@@ -94,9 +94,10 @@ npm run tauri build    # production installer
 ```
 
 `build_sidecar.py` runs PyInstaller and drops
-`gesture-guard-<target-triple>[.exe]` into `src-tauri/binaries/`, which Tauri
+`privacy-engine-<target-triple>[.exe]` into `src-tauri/binaries/`, which Tauri
 bundles as an `externalBin` sidecar. The Rust core spawns it on launch and kills
-it when you close the window.
+it when you close the window. (The sidecar is deliberately named differently
+from the app binary so Tauri's dev-mode copy doesn't collide with it.)
 
 ### Frontend-only dev (no Tauri build)
 

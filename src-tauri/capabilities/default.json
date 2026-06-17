@@ -11,7 +11,7 @@
       "identifier": "shell:allow-execute",
       "allow": [
         {
-          "name": "binaries/gesture-guard",
+          "name": "binaries/privacy-engine",
           "sidecar": true,
           "args": true
         }
@@ -21,7 +21,7 @@
       "identifier": "shell:allow-spawn",
       "allow": [
         {
-          "name": "binaries/gesture-guard",
+          "name": "binaries/privacy-engine",
           "sidecar": true,
           "args": true
         }
