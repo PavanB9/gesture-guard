@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(1100px 700px at 78% -8%, rgba(34, 211, 238, 0.08), transparent 60%),
+    radial-gradient(900px 600px at 0% 110%, rgba(16, 185, 129, 0.06), transparent 55%),
+    #05070b;
+  color: #e6e8ee;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Flashing alert banner while the guard is actively suppressing the feed. */
+@keyframes guardflash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.animate-guardflash {
+  animation: guardflash 0.9s ease-in-out infinite;
+}
+
+@keyframes pulsedot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+.animate-pulsedot {
+  animation: pulsedot 1.1s ease-in-out infinite;
+}
+
+/* Sensitivity slider */
+input[type="range"].gg-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #22d3ee, #10b981);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"].gg-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #e6fbff;
+  border: 2px solid #22d3ee;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+}
+input[type="range"].gg-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #e6fbff;
+  border: 2px solid #22d3ee;
+}

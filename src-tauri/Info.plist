@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- The Python sidecar opens the webcam; on macOS that access is attributed
+       to this app, so the TCC prompt needs a usage description. -->
+  <key>NSCameraUsageDescription</key>
+  <string>Gesture Guard analyzes your webcam locally to blur the feed when it detects unprofessional gestures. Video never leaves your device.</string>
+</dict>
+</plist>

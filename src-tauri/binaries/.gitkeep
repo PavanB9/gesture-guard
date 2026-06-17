@@ -1,0 +1,2 @@
+# The frozen Python sidecar (gesture-guard-<target-triple>[.exe]) is built into
+# this folder by `src-backend/build_sidecar.py` and is intentionally gitignored.
