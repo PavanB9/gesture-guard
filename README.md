@@ -21,7 +21,6 @@ Prebuilt installers are published on the
 
 - **Windows** — `Gesture Guard_<version>_x64-setup.exe` (or the `.msi`)
 - **macOS (Apple Silicon)** — `Gesture Guard_<version>_aarch64.dmg`
-- **macOS (Intel)** — `Gesture Guard_<version>_x64.dmg`
 
 > The builds are unsigned, so on first launch Windows SmartScreen
 > ("More info → Run anyway") and macOS Gatekeeper (right-click → Open) will warn you.

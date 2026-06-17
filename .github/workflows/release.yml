@@ -2,8 +2,8 @@ name: Release
 
 # Cut a release by pushing a tag, e.g.:
 #   git tag v0.1.0 && git push origin v0.1.0
-# This builds installers for Windows + macOS (Apple Silicon and Intel) and
-# attaches them to a GitHub Release (created as a draft for you to review/publish).
+# This builds installers for Windows + macOS (Apple Silicon) and attaches them
+# to a GitHub Release (created as a draft for you to review/publish).
 on:
   push:
     tags:
@@ -24,7 +24,6 @@ jobs:
       matrix:
         include:
           - platform: macos-latest # Apple Silicon (aarch64)
-          - platform: macos-13 # Intel (x86_64)
           - platform: windows-latest # x86_64
     runs-on: ${{ matrix.platform }}
 
@@ -70,6 +69,6 @@ jobs:
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: "Gesture Guard ${{ github.event.inputs.tag || github.ref_name }}"
-          releaseBody: "Download the installer for your OS below. Windows: `-setup.exe` (or `.msi`). macOS: `.dmg` (choose aarch64 for Apple Silicon, x64 for Intel)."
+          releaseBody: "Download the installer for your OS below — Windows: `-setup.exe` (or `.msi`); macOS (Apple Silicon): `Gesture Guard_*_aarch64.dmg`."
           releaseDraft: true
           prerelease: false
