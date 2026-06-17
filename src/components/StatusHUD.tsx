@@ -31,6 +31,11 @@ export default function StatusHUD({ status, connected }: StatusHUDProps) {
             {status.fps.toFixed(0)} fps
           </span>
         )}
+        {status?.virtual_cam_active && (
+          <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-300">
+            VCAM
+          </span>
+        )}
       </div>
 
       {/* Flashing violation banner */}

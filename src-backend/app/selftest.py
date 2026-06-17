@@ -67,6 +67,12 @@ def main() -> int:
     blurred = utils.heavy_blur(noise)
     _check("blur preserves shape", blurred.shape == noise.shape)
 
+    # 5. Virtual-camera dependency present (phase 2). We do not open a device
+    #    here (that needs a system driver), just verify the module + format.
+    import pyvirtualcam
+
+    _check("pyvirtualcam available", hasattr(pyvirtualcam.PixelFormat, "BGR"))
+
     print("ALL CHECKS PASSED")
     return 0
 

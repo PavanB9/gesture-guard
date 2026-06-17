@@ -136,11 +136,18 @@ below the threshold • have someone step in → `faces` becomes 2.
 - The first launch triggers the **camera permission** prompt (the app ships an
   `NSCameraUsageDescription` in `src-tauri/Info.plist`).
 
-## Roadmap
+## Virtual camera output
 
-- **Virtual camera output (phase 2):** expose the guarded feed as a virtual webcam
-  via `pyvirtualcam` so Zoom/Teams consume it directly (Windows: built-in;
-  macOS: OBS virtual cam / system extension).
+Toggle **Virtual camera** in the dashboard (Output section) to also push the guarded
+feed to a system virtual webcam, so Zoom/Teams/Meet can select **"Gesture Guard"**
+(or "OBS Virtual Camera") as their camera and receive the already-protected stream.
+
+This requires a virtual-camera driver to be installed on the machine:
+
+- **Windows / macOS:** install [OBS Studio](https://obsproject.com/) and click
+  *Start Virtual Camera* once to register the device (`pyvirtualcam` then drives it).
+- If no driver is present the toggle reports the error and the app keeps working —
+  the in-app preview is unaffected.
 
 ## License
 

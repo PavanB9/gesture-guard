@@ -75,6 +75,7 @@ export default function Dashboard({
         <aside className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-5">
           <ControlPanel
             config={config}
+            status={status}
             update={update}
             updateDebounced={updateDebounced}
           />

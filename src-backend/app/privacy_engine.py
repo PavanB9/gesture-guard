@@ -65,6 +65,11 @@ class PrivacyEngine:
         self._last_metrics: Optional[FrameMetrics] = None
         self._fps = 0.0
 
+        # Phase 2: virtual camera output (lazy; degrades gracefully).
+        self._vcam = None
+        self._vcam_dims = None
+        self._vcam_error: Optional[str] = None
+
     # --- public API -----------------------------------------------------------
     def is_running(self) -> bool:
         return self._running
@@ -153,6 +158,11 @@ class PrivacyEngine:
                 guard_active = cfg.guard_enabled and bool(violations)
                 out = self._apply_guard(frame, cfg, guard_active, metrics)
 
+                # Phase 2: mirror the SAFE frame to a virtual camera if enabled.
+                oh, ow = out.shape[:2]
+                self._ensure_vcam(cfg, ow, oh)
+                self._send_vcam(out)
+
                 dt = now - last_t
                 last_t = now
                 if dt > 0:
@@ -160,6 +170,7 @@ class PrivacyEngine:
 
                 self._publish(out, cfg, violations, metrics, guard_active)
         finally:
+            self._close_vcam()
             if self._cap is not None:
                 self._cap.release()
             if self._analyzer is not None:
@@ -243,6 +254,55 @@ class PrivacyEngine:
         )
         return frame
 
+    # --- virtual camera (phase 2) --------------------------------------------
+    def _ensure_vcam(self, cfg: GuardConfig, w: int, h: int) -> None:
+        if not cfg.virtual_cam:
+            if self._vcam is not None or self._vcam_error is not None:
+                self._close_vcam()
+                self._vcam_error = None
+            return
+        if self._vcam is not None and self._vcam_dims == (w, h):
+            return
+        # Already failed to open at this resolution: wait for a toggle off/on
+        # instead of hammering the driver every frame.
+        if self._vcam is None and self._vcam_error is not None:
+            return
+        self._close_vcam()
+        try:
+            import pyvirtualcam
+
+            self._vcam = pyvirtualcam.Camera(
+                width=w,
+                height=h,
+                fps=30,
+                fmt=pyvirtualcam.PixelFormat.BGR,
+                print_fps=False,
+            )
+            self._vcam_dims = (w, h)
+            self._vcam_error = None
+        except Exception as exc:  # no driver installed, busy, etc.
+            self._vcam = None
+            self._vcam_dims = None
+            self._vcam_error = f"Virtual camera unavailable: {exc}"
+
+    def _send_vcam(self, frame: np.ndarray) -> None:
+        if self._vcam is None:
+            return
+        try:
+            self._vcam.send(frame)
+        except Exception as exc:
+            self._vcam_error = f"Virtual camera send failed: {exc}"
+            self._close_vcam()
+
+    def _close_vcam(self) -> None:
+        if self._vcam is not None:
+            try:
+                self._vcam.close()
+            except Exception:
+                pass
+        self._vcam = None
+        self._vcam_dims = None
+
     def _publish(
         self,
         out: np.ndarray,
@@ -259,6 +319,8 @@ class PrivacyEngine:
             "action": cfg.guard_action,
             "fps": round(self._fps, 1),
             "camera_error": self._cam_error,
+            "virtual_cam_active": self._vcam is not None,
+            "virtual_cam_error": self._vcam_error,
         }
         if metrics is not None:
             status.update(metrics.as_status())

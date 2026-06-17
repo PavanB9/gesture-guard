@@ -7,5 +7,9 @@ opencv-python-headless>=4.9,<5.0
 mediapipe==0.10.35
 numpy>=1.26,<2.0
 pydantic>=2.6,<3.0
+# Phase 2: expose the guarded feed as a virtual webcam for Zoom/Teams.
+# Needs a system virtual-camera driver at runtime (OBS Virtual Camera, etc.);
+# degrades gracefully if none is installed.
+pyvirtualcam>=0.11
 # Build-time only: freezes the engine into a single-file native sidecar
 pyinstaller>=6.6

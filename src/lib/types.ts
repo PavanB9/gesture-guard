@@ -10,6 +10,7 @@ export interface GuardConfig {
   camera_index: number;
   mirror: boolean;
   show_overlay: boolean;
+  virtual_cam: boolean;
 }
 
 export interface GuardStatus {
@@ -19,6 +20,8 @@ export interface GuardStatus {
   action: GuardAction;
   fps: number;
   camera_error: string | null;
+  virtual_cam_active?: boolean;
+  virtual_cam_error?: string | null;
   face_count?: number;
   mar?: number;
   hand_found?: boolean;

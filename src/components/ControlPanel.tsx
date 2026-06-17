@@ -1,9 +1,10 @@
-import type { GuardAction, GuardConfig } from "../lib/types";
+import type { GuardAction, GuardConfig, GuardStatus } from "../lib/types";
 import FeatureToggle from "./FeatureToggle";
 import SensitivitySlider from "./SensitivitySlider";
 
 interface ControlPanelProps {
   config: GuardConfig | null;
+  status: GuardStatus | null;
   update: (partial: Partial<GuardConfig>) => void;
   updateDebounced: (
     partial: Partial<GuardConfig>,
@@ -25,6 +26,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function ControlPanel({
   config,
+  status,
   update,
   updateDebounced,
 }: ControlPanelProps) {
@@ -136,6 +138,31 @@ export default function ControlPanel({
             checked={config.show_overlay}
             onChange={(v) => update({ show_overlay: v })}
           />
+        </div>
+      </Section>
+
+      <Section title="Output">
+        <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+          <FeatureToggle
+            label="Virtual camera"
+            description="Feed the guarded video to Zoom / Teams"
+            checked={config.virtual_cam}
+            accent="emerald"
+            onChange={(v) => update({ virtual_cam: v })}
+          />
+          {config.virtual_cam && status?.virtual_cam_active && (
+            <div className="text-xs text-emerald-400">
+              ● Virtual camera output active
+            </div>
+          )}
+          {config.virtual_cam && status?.virtual_cam_error && (
+            <div className="text-xs text-amber-400">{status.virtual_cam_error}</div>
+          )}
+          {config.virtual_cam &&
+            !status?.virtual_cam_active &&
+            !status?.virtual_cam_error && (
+              <div className="text-xs text-zinc-500">Starting…</div>
+            )}
         </div>
       </Section>
     </div>

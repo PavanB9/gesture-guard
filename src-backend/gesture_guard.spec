@@ -12,7 +12,7 @@ datas = []
 binaries = []
 hiddenimports = []
 
-for pkg in ("mediapipe", "cv2"):
+for pkg in ("mediapipe", "cv2", "pyvirtualcam"):
     d, b, h = collect_all(pkg)
     datas += d
     binaries += b

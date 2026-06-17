@@ -50,6 +50,11 @@ class GuardConfig(BaseModel):
     # Draw landmark debug overlay on the passthrough feed.
     show_overlay: bool = False
 
+    # Phase 2: also push the guarded feed to a system virtual camera so video
+    # call apps (Zoom/Teams) consume the protected stream. Requires a virtual
+    # camera driver (e.g. OBS Virtual Camera) to be installed on the machine.
+    virtual_cam: bool = False
+
     # --- Derived thresholds ---------------------------------------------------
     def yawn_mar_threshold(self) -> float:
         """Mouth-aspect-ratio cut-off. Higher sensitivity -> lower bar."""
