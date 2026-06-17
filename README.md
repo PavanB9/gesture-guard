@@ -14,6 +14,28 @@ one-time download of the open-source MediaPipe model files at build time.
 
 ---
 
+## Download
+
+Prebuilt installers are published on the
+**[Releases](https://github.com/PavanB9/gesture-guard/releases)** page:
+
+- **Windows** — `Gesture Guard_<version>_x64-setup.exe` (or the `.msi`)
+- **macOS (Apple Silicon)** — `Gesture Guard_<version>_aarch64.dmg`
+- **macOS (Intel)** — `Gesture Guard_<version>_x64.dmg`
+
+> The builds are unsigned, so on first launch Windows SmartScreen
+> ("More info → Run anyway") and macOS Gatekeeper (right-click → Open) will warn you.
+
+To cut a release, push a version tag — GitHub Actions then builds all three installers
+automatically (see `.github/workflows/release.yml`):
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+---
+
 ## Architecture
 
 ```

@@ -1,0 +1,75 @@
+name: Release
+
+# Cut a release by pushing a tag, e.g.:
+#   git tag v0.1.0 && git push origin v0.1.0
+# This builds installers for Windows + macOS (Apple Silicon and Intel) and
+# attaches them to a GitHub Release (created as a draft for you to review/publish).
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create (e.g. v0.1.0)"
+        required: true
+        default: "v0.0.0-dev"
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest # Apple Silicon (aarch64)
+          - platform: macos-13 # Intel (x86_64)
+          - platform: windows-latest # x86_64
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Python sidecar (PyInstaller)
+        working-directory: src-backend
+        shell: bash
+        run: |
+          python -m venv .venv
+          if [ "$RUNNER_OS" = "Windows" ]; then PY=".venv/Scripts/python"; else PY=".venv/bin/python"; fi
+          "$PY" -m pip install --upgrade pip
+          "$PY" -m pip install -r requirements.txt
+          "$PY" fetch_models.py
+          "$PY" build_sidecar.py
+
+      - name: Build app and publish release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: "Gesture Guard ${{ github.event.inputs.tag || github.ref_name }}"
+          releaseBody: "Download the installer for your OS below. Windows: `-setup.exe` (or `.msi`). macOS: `.dmg` (choose aarch64 for Apple Silicon, x64 for Intel)."
+          releaseDraft: true
+          prerelease: false
