@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Gesture Guard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.pavanb9.gestureguard",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -28,6 +28,9 @@
     "active": true,
     "targets": "all",
     "externalBin": ["binaries/privacy-engine"],
+    "macOS": {
+      "signingIdentity": "-"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
