@@ -36,6 +36,7 @@ src-backend/app/assets/models/
 src-tauri/target/
 src-tauri/gen/schemas/
 
-# --- Frozen sidecar binary (rebuilt by build_sidecar.py) ---
+# --- Frozen engine (one-folder build, rebuilt by build_sidecar.py) ---
 src-tauri/binaries/*
 !src-tauri/binaries/.gitkeep
+src-tauri/resources/engine/

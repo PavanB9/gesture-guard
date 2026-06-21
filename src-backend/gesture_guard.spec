@@ -40,22 +40,34 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
+# One-FOLDER build (not one-file): on macOS, one-file unpacks Python.framework
+# to a temp dir at runtime, and ad-hoc signing the app re-signs the launcher so
+# its signature no longer matches the unpacked framework ("different Team IDs"),
+# which macOS refuses to load. One-folder keeps everything signed in place.
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name="privacy-engine",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    runtime_tmpdir=None,
     console=True,  # Tauri spawns with CREATE_NO_WINDOW, so no console pops up.
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name="privacy-engine",
 )

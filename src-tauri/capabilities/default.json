@@ -1,31 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capabilities for the main window: core APIs plus permission to spawn the embedded Python privacy-engine sidecar.",
+  "description": "Capabilities for the main window. The Python engine is spawned from the Rust core (no shell capability needed).",
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default",
-    "shell:default",
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [
-        {
-          "name": "binaries/privacy-engine",
-          "sidecar": true,
-          "args": true
-        }
-      ]
-    },
-    {
-      "identifier": "shell:allow-spawn",
-      "allow": [
-        {
-          "name": "binaries/privacy-engine",
-          "sidecar": true,
-          "args": true
-        }
-      ]
-    }
+    "opener:default"
   ]
 }

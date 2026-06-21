@@ -1,20 +1,20 @@
 // Gesture Guard — Tauri core process.
 //
-// Owns the lifecycle of the embedded Python privacy-engine sidecar:
-//   * pick a free localhost port at startup,
-//   * spawn `gesture-guard --host 127.0.0.1 --port <p>` silently,
-//   * expose the chosen port to the webview via `get_backend_port`,
-//   * forcefully kill the sidecar when the window is destroyed (no orphans).
+// Owns the lifecycle of the Python privacy-engine:
+//   * pick a free localhost port,
+//   * spawn the engine (dev: project venv; release: the bundled one-folder
+//     build under the app's resource dir),
+//   * expose the port to the webview via `get_backend_port`,
+//   * kill the engine (whole tree) when the window is destroyed.
 
+use std::process::{Child, Command};
 use std::sync::Mutex;
 
 use tauri::{Manager, State, WindowEvent};
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
-use tauri_plugin_shell::ShellExt;
 
 struct BackendState {
     port: u16,
-    child: Mutex<Option<CommandChild>>,
+    child: Mutex<Option<Child>>,
 }
 
 #[tauri::command]
@@ -30,26 +30,64 @@ fn find_free_port() -> u16 {
         .unwrap_or(8000)
 }
 
-fn kill_sidecar(app: &tauri::AppHandle) {
+#[allow(unused_variables)]
+fn spawn_engine(app: &tauri::AppHandle, port: u16) -> std::io::Result<Child> {
+    let port = port.to_string();
+    let args = ["--host", "127.0.0.1", "--port", port.as_str()];
+
+    #[cfg(debug_assertions)]
+    {
+        // Dev: run straight from the project venv so you don't re-freeze on
+        // every change. Path is resolved at compile time relative to src-tauri.
+        let backend = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("src-tauri has a parent")
+            .join("src-backend");
+        #[cfg(target_os = "windows")]
+        let python = backend.join(".venv").join("Scripts").join("python.exe");
+        #[cfg(not(target_os = "windows"))]
+        let python = backend.join(".venv").join("bin").join("python");
+
+        Command::new(python)
+            .arg("-m")
+            .arg("app.main")
+            .args(args)
+            .current_dir(&backend)
+            .spawn()
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        // Release: the bundled one-folder engine lives under <resources>/engine.
+        #[cfg(target_os = "windows")]
+        let rel = "engine/privacy-engine.exe";
+        #[cfg(not(target_os = "windows"))]
+        let rel = "engine/privacy-engine";
+
+        let exe = app
+            .path()
+            .resolve(rel, tauri::path::BaseDirectory::Resource)
+            .expect("failed to resolve bundled engine path");
+        Command::new(exe).args(args).spawn()
+    }
+}
+
+/// Kill the engine and any child processes it spawned.
+fn kill_engine(app: &tauri::AppHandle) {
     if let Some(state) = app.try_state::<BackendState>() {
-        if let Some(child) = state.child.lock().unwrap().take() {
-            // PyInstaller one-file binaries run as a bootloader parent + a real
-            // Python child, so `child.kill()` alone orphans the Python process.
-            // Tear down the whole tree first, then kill the direct child.
-            let pid = child.pid();
+        if let Some(mut child) = state.child.lock().unwrap().take() {
+            let pid = child.id();
             #[cfg(target_os = "windows")]
             {
                 use std::os::windows::process::CommandExt;
-                let _ = std::process::Command::new("taskkill")
+                let _ = Command::new("taskkill")
                     .args(["/F", "/T", "/PID", &pid.to_string()])
                     .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
                     .output();
             }
             #[cfg(not(target_os = "windows"))]
             {
-                // Kill child processes of the bootloader before the bootloader
-                // itself so the Python process does not get reparented away.
-                let _ = std::process::Command::new("pkill")
+                let _ = Command::new("pkill")
                     .args(["-TERM", "-P", &pid.to_string()])
                     .output();
             }
@@ -62,35 +100,9 @@ fn kill_sidecar(app: &tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             let port = find_free_port();
-
-            let sidecar = app
-                .shell()
-                .sidecar("privacy-engine")
-                .expect("failed to create `privacy-engine` sidecar command")
-                .args(["--host", "127.0.0.1", "--port", &port.to_string()]);
-
-            let (mut rx, child) = sidecar
-                .spawn()
-                .expect("failed to spawn privacy engine sidecar");
-
-            // Forward sidecar output to the Tauri log for debugging.
-            tauri::async_runtime::spawn(async move {
-                while let Some(event) = rx.recv().await {
-                    match event {
-                        CommandEvent::Stdout(line) => {
-                            print!("[engine] {}", String::from_utf8_lossy(&line));
-                        }
-                        CommandEvent::Stderr(line) => {
-                            eprint!("[engine] {}", String::from_utf8_lossy(&line));
-                        }
-                        _ => {}
-                    }
-                }
-            });
-
+            let child = spawn_engine(app.handle(), port).expect("failed to spawn privacy engine");
             app.manage(BackendState {
                 port,
                 child: Mutex::new(Some(child)),
@@ -99,7 +111,7 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if matches!(event, WindowEvent::Destroyed) {
-                kill_sidecar(window.app_handle());
+                kill_engine(window.app_handle());
             }
         })
         .invoke_handler(tauri::generate_handler![get_backend_port])

@@ -1,12 +1,14 @@
-"""Freeze the privacy engine and drop it into ``src-tauri/binaries/``.
+"""Freeze the privacy engine (one-folder) into ``src-tauri/resources/engine/``.
 
-Tauri's ``externalBin`` mechanism expects the binary to be suffixed with the
-Rust *target triple* (e.g. ``gesture-guard-x86_64-pc-windows-msvc.exe``), so we
-build with PyInstaller and then copy the result under the right name.
+The folder is bundled by Tauri as a resource and spawned at runtime. On macOS,
+every Mach-O in the folder is ad-hoc signed so the launcher and everything it
+dlopen's (MediaPipe, OpenCV, the Python framework, ...) share one signature —
+a one-file build would unpack a mismatched Python.framework at runtime, which
+Apple Silicon refuses to load ("different Team IDs").
 
     cd src-backend
     .venv/Scripts/python build_sidecar.py        # Windows
-    .venv/bin/python build_sidecar.py            # macOS/Linux
+    .venv/bin/python build_sidecar.py            # macOS
 """
 
 from __future__ import annotations
@@ -19,17 +21,17 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent  # src-backend
 ROOT = HERE.parent  # repo root
-TAURI_BIN = ROOT / "src-tauri" / "binaries"
+RESOURCE_DIR = ROOT / "src-tauri" / "resources" / "engine"
 
 
-def target_triple() -> str:
-    out = subprocess.run(
-        ["rustc", "-Vv"], capture_output=True, text=True, check=True
-    ).stdout
-    for line in out.splitlines():
-        if line.startswith("host:"):
-            return line.split(":", 1)[1].strip()
-    raise RuntimeError("could not determine rustc host triple (is rustc on PATH?)")
+def adhoc_sign_macos(folder: Path) -> None:
+    print("Ad-hoc signing engine Mach-O files for macOS...")
+    script = (
+        f'find "{folder}" -type f \\( -name "*.so" -o -name "*.dylib" -o -name "Python" \\) '
+        f"-exec codesign --force --sign - {{}} + ; "
+        f'codesign --force --sign - "{folder}/privacy-engine"'
+    )
+    subprocess.run(["bash", "-c", script], check=False)
 
 
 def main() -> None:
@@ -39,33 +41,31 @@ def main() -> None:
 
     fetch_models.fetch()
 
-    # 2. Freeze with PyInstaller (uses this interpreter == the venv).
-    print("Running PyInstaller (this takes a few minutes)...")
+    # 2. Freeze with PyInstaller (one-folder; uses this interpreter == the venv).
+    print("Running PyInstaller (one-folder; takes a few minutes)...")
     subprocess.run(
         [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "gesture_guard.spec"],
         cwd=str(HERE),
         check=True,
     )
 
-    # 3. Copy to the target-triple name Tauri expects.
-    #    NOTE: the sidecar base name ("privacy-engine") must differ from the
-    #    Tauri app/Cargo package name ("gesture-guard"). Tauri copies externalBin
-    #    into the target dir with the triple stripped, so a matching name would
-    #    collide with the app binary and make the app spawn itself recursively.
-    triple = target_triple()
-    ext = ".exe" if platform.system() == "Windows" else ""
-    built = HERE / "dist" / f"privacy-engine{ext}"
-    if not built.exists():
-        raise FileNotFoundError(f"build output not found: {built}")
+    built_dir = HERE / "dist" / "privacy-engine"
+    if not built_dir.is_dir():
+        raise FileNotFoundError(f"build output not found: {built_dir}")
 
-    TAURI_BIN.mkdir(parents=True, exist_ok=True)
-    # Drop any stale sidecar binaries from earlier builds/names.
-    for old in TAURI_BIN.glob("gesture-guard-*"):
-        old.unlink()
-    dest = TAURI_BIN / f"privacy-engine-{triple}{ext}"
-    shutil.copy2(built, dest)
-    print(f"\nSidecar ready: {dest}")
-    print(f"  size: {dest.stat().st_size / 1_048_576:.1f} MiB")
+    # 3. Place the whole folder into the Tauri resources dir.
+    if RESOURCE_DIR.exists():
+        shutil.rmtree(RESOURCE_DIR)
+    RESOURCE_DIR.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(built_dir, RESOURCE_DIR)
+
+    # 4. Sign in place (macOS only).
+    if platform.system() == "Darwin":
+        adhoc_sign_macos(RESOURCE_DIR)
+
+    exe = "privacy-engine.exe" if platform.system() == "Windows" else "privacy-engine"
+    print(f"\nEngine bundled at: {RESOURCE_DIR}")
+    print(f"  launcher: {RESOURCE_DIR / exe}")
 
 
 if __name__ == "__main__":
