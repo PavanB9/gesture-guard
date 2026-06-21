@@ -62,6 +62,10 @@ exe = EXE(
     entitlements_file=None,
 )
 
+# Plain one-folder output on every platform. The engine no longer opens the
+# camera (the app window captures it via getUserMedia and streams frames in), so
+# it needs no .app wrapper / camera entitlement -- this is the layout that runs
+# reliably on macOS and Windows.
 coll = COLLECT(
     exe,
     a.binaries,
@@ -71,26 +75,3 @@ coll = COLLECT(
     upx_exclude=[],
     name="privacy-engine",
 )
-
-import sys as _sys
-
-if _sys.platform == "darwin":
-    # On macOS, PyInstaller's BUNDLE produces the correct .app layout (libs under
-    # Contents/Frameworks where the bootloader expects them). The .app carries its
-    # own NSCameraUsageDescription so the engine can prompt for the camera.
-    # build_sidecar.py signs the inner Mach-O individually (NOT `codesign --deep`,
-    # which mangles the bundled Python framework).
-    app = BUNDLE(
-        coll,
-        name="privacy-engine.app",
-        icon=None,
-        bundle_identifier="com.pavanb9.gestureguard.engine",
-        info_plist={
-            "NSCameraUsageDescription": "Gesture Guard analyzes your webcam locally to "
-            "blur the feed when it detects unprofessional gestures. Video never leaves "
-            "your device.",
-            "LSUIElement": True,
-            "CFBundleName": "Gesture Guard Engine",
-            "CFBundleDisplayName": "Gesture Guard Engine",
-        },
-    )

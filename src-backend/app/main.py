@@ -2,14 +2,14 @@
 
 Endpoints
 ---------
-* ``GET  /healthz``       - liveness probe (Tauri waits on this before connecting)
-* ``GET  /api/config``    - current guard configuration
-* ``POST /api/config``    - partial config update (toggles, sensitivity, action, camera)
-* ``GET  /api/cameras``   - candidate camera indices + the active one
-* ``WS   /ws/stream``     - server -> client: JSON status text + binary JPEG frames
+* ``GET  /healthz``     - liveness probe (the UI waits on this before connecting)
+* ``GET  /api/config``  - current guard configuration
+* ``POST /api/config``  - partial config update (toggles, sensitivity, action)
+* ``WS   /ws/process``  - the app sends webcam JPEG frames; the engine returns a
+                          JSON status line + the safe JPEG frame for each one.
 
-The socket is one-directional (the Python side owns the camera); the dashboard
-only sends settings via the REST endpoints.
+The app window owns the camera (browser getUserMedia); the engine only processes
+the frames it is sent.
 """
 
 from __future__ import annotations
@@ -27,8 +27,6 @@ from .privacy_engine import PrivacyEngine
 
 engine = PrivacyEngine()
 
-STREAM_INTERVAL = 1.0 / 30.0  # poll cadence for pushing frames (~30 fps)
-
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -41,13 +39,10 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Gesture Guard Engine", version="0.1.0", lifespan=lifespan)
 
-# Local-only app; the Tauri webview origin is tauri://localhost or
-# http://localhost:1420, so we allow any origin for the REST endpoints.
+# Local-only app; allow any origin for the REST endpoints (the webview origin is
+# tauri://localhost / http://localhost).
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
 
 
@@ -66,29 +61,18 @@ async def set_config(partial: dict):
     return engine.update_config(partial).model_dump()
 
 
-@app.get("/api/cameras")
-async def list_cameras():
-    # Opening a device just to probe it conflicts with the engine's exclusive
-    # hold on Windows, so we expose candidate indices and report failures via
-    # the stream's `camera_error` field instead.
-    return {
-        "cameras": [0, 1, 2, 3],
-        "active": engine.get_config().camera_index,
-    }
-
-
-@app.websocket("/ws/stream")
-async def ws_stream(ws: WebSocket):
+@app.websocket("/ws/process")
+async def ws_process(ws: WebSocket):
     await ws.accept()
-    last_seq = -1
+    loop = asyncio.get_event_loop()
     try:
         while True:
-            seq, jpeg, status = engine.get_frame()
-            if jpeg is not None and seq != last_seq:
-                last_seq = seq
-                await ws.send_text(json.dumps(status))
-                await ws.send_bytes(jpeg)
-            await asyncio.sleep(STREAM_INTERVAL)
+            data = await ws.receive_bytes()
+            # Run the CPU-bound detection off the event loop.
+            jpeg, status = await loop.run_in_executor(None, engine.process_jpeg, data)
+            await ws.send_text(json.dumps(status))
+            # Always return a binary frame so the client can pace the next send.
+            await ws.send_bytes(jpeg if jpeg is not None else data)
     except WebSocketDisconnect:
         pass
     except Exception:
@@ -103,8 +87,7 @@ def main() -> None:
     parser.add_argument(
         "--selftest",
         action="store_true",
-        help="Run the camera-free pipeline smoke test and exit "
-        "(verifies bundled MediaPipe models load — handy for the frozen binary).",
+        help="Run the camera-free pipeline smoke test and exit.",
     )
     args = parser.parse_args()
 
@@ -113,7 +96,6 @@ def main() -> None:
 
         raise SystemExit(selftest_main())
 
-    # Single, explicit ready line that Tauri can log/observe.
     print(f"GESTURE_GUARD_ENGINE host={args.host} port={args.port}", flush=True)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 

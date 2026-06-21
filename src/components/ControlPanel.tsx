@@ -5,6 +5,9 @@ import SensitivitySlider from "./SensitivitySlider";
 interface ControlPanelProps {
   config: GuardConfig | null;
   status: GuardStatus | null;
+  devices: MediaDeviceInfo[];
+  deviceId: string | null;
+  setDeviceId: (id: string | null) => void;
   update: (partial: Partial<GuardConfig>) => void;
   updateDebounced: (
     partial: Partial<GuardConfig>,
@@ -27,6 +30,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ControlPanel({
   config,
   status,
+  devices,
+  deviceId,
+  setDeviceId,
   update,
   updateDebounced,
 }: ControlPanelProps) {
@@ -114,19 +120,23 @@ export default function ControlPanel({
 
       <Section title="Camera">
         <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-          <div className="flex items-center justify-between">
+          <div className="space-y-1">
             <span className="text-sm font-medium text-zinc-100">Device</span>
             <select
-              value={config.camera_index}
-              onChange={(e) => update({ camera_index: Number(e.target.value) })}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-200 outline-none focus:border-cyan-500"
+              value={deviceId ?? ""}
+              onChange={(e) => setDeviceId(e.target.value || null)}
+              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 outline-none focus:border-cyan-500"
             >
-              {[0, 1, 2, 3].map((i) => (
-                <option key={i} value={i}>
-                  Camera {i}
+              <option value="">Default camera</option>
+              {devices.map((d, i) => (
+                <option key={d.deviceId} value={d.deviceId}>
+                  {d.label || `Camera ${i + 1}`}
                 </option>
               ))}
             </select>
+            <p className="text-[11px] text-zinc-600">
+              Pick your built-in camera here if it defaults to an iPhone.
+            </p>
           </div>
           <FeatureToggle
             label="Mirror preview"
@@ -151,18 +161,11 @@ export default function ControlPanel({
             onChange={(v) => update({ virtual_cam: v })}
           />
           {config.virtual_cam && status?.virtual_cam_active && (
-            <div className="text-xs text-emerald-400">
-              ● Virtual camera output active
-            </div>
+            <div className="text-xs text-emerald-400">● Virtual camera output active</div>
           )}
           {config.virtual_cam && status?.virtual_cam_error && (
             <div className="text-xs text-amber-400">{status.virtual_cam_error}</div>
           )}
-          {config.virtual_cam &&
-            !status?.virtual_cam_active &&
-            !status?.virtual_cam_error && (
-              <div className="text-xs text-zinc-500">Starting…</div>
-            )}
         </div>
       </Section>
     </div>

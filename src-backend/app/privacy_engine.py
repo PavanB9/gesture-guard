@@ -1,19 +1,17 @@
-"""The capture + detection + guard loop.
+"""Frame processing + detection + guard logic.
 
-A background thread owns the webcam (``cv2.VideoCapture``), runs detection on a
-downscaled frame, decides whether any armed detector is violating, and produces
-the *safe* output frame (passthrough, heavy blur, or a Be-Right-Back screen).
-The latest encoded JPEG and a status dict are published behind a lock for the
-FastAPI WebSocket handler to pick up.
+The engine does **not** own the camera. The app window captures the webcam
+(via the browser's getUserMedia, so the OS grants the camera to the app itself)
+and streams JPEG frames here over the WebSocket. For each frame the engine runs
+detection, decides whether any armed detector is violating, and returns the
+*safe* frame (passthrough, heavy blur, or a Be-Right-Back screen) plus a status.
 
-Set ``GESTURE_GUARD_NO_CAMERA=1`` to run the full server stack without ever
-opening the webcam (used for automated/CI smoke tests).
+This sidesteps the macOS problem where a separate helper process can't get its
+own camera permission.
 """
 
 from __future__ import annotations
 
-import os
-import platform
 import threading
 import time
 from typing import Dict, Optional, Set, Tuple
@@ -40,20 +38,12 @@ VIOLATION_LABELS = {
 
 class PrivacyEngine:
     def __init__(self, config: Optional[GuardConfig] = None) -> None:
-        self._lock = threading.Lock()
+        self._lock = threading.Lock()  # guards config
+        self._proc_lock = threading.Lock()  # serialises frame processing
         self._config = config or GuardConfig()
-        self._no_camera = bool(os.environ.get("GESTURE_GUARD_NO_CAMERA"))
 
-        self._running = False
-        self._thread: Optional[threading.Thread] = None
         self._analyzer: Optional[FaceHandsAnalyzer] = None
-        self._cap = None
-        self._reopen = True
-        self._cam_error: Optional[str] = None
-
-        self._latest_jpeg: Optional[bytes] = None
-        self._seq = 0
-        self._status: Dict = {"guard_active": False, "violations": [], "fps": 0.0}
+        self._running = False
 
         self._gates = {
             "yawn": TemporalGate(YAWN_HOLD_S, RELEASE_S),
@@ -64,16 +54,29 @@ class PrivacyEngine:
         self._frame_i = 0
         self._last_metrics: Optional[FrameMetrics] = None
         self._fps = 0.0
+        self._last_t = time.time()
 
         # Phase 2: virtual camera output (lazy; degrades gracefully).
         self._vcam = None
         self._vcam_dims = None
         self._vcam_error: Optional[str] = None
 
-    # --- public API -----------------------------------------------------------
+    # --- lifecycle ------------------------------------------------------------
     def is_running(self) -> bool:
         return self._running
 
+    def start(self) -> None:
+        self._running = True
+
+    def stop(self) -> None:
+        self._running = False
+        with self._proc_lock:
+            self._close_vcam()
+            if self._analyzer is not None:
+                self._analyzer.close()
+                self._analyzer = None
+
+    # --- config ---------------------------------------------------------------
     def get_config(self) -> GuardConfig:
         with self._lock:
             return self._config.model_copy()
@@ -83,106 +86,56 @@ class PrivacyEngine:
             merged = self._config.model_dump()
             merged.update({k: v for k, v in partial.items() if k in merged})
             new_cfg = GuardConfig(**merged)
-            if new_cfg.camera_index != self._config.camera_index:
-                self._reopen = True
             self._config = new_cfg
             return new_cfg.model_copy()
 
-    def get_frame(self) -> Tuple[int, Optional[bytes], Dict]:
-        with self._lock:
-            return self._seq, self._latest_jpeg, dict(self._status)
+    # --- frame processing -----------------------------------------------------
+    def process_jpeg(self, data: bytes) -> Tuple[Optional[bytes], Dict]:
+        """Decode a browser-supplied JPEG frame, guard it, return safe JPEG + status."""
+        arr = np.frombuffer(data, dtype=np.uint8)
+        frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        if frame is None:
+            return None, {"guard_active": False, "violations": [], "error": "decode failed"}
+        return self._process(frame)
 
-    def start(self) -> None:
-        if self._running:
-            return
-        self._running = True
-        self._thread = threading.Thread(target=self._run, name="privacy-engine", daemon=True)
-        self._thread.start()
-
-    def stop(self) -> None:
-        self._running = False
-        if self._thread is not None:
-            self._thread.join(timeout=3.0)
-            self._thread = None
-
-    # --- camera ---------------------------------------------------------------
-    def _open_camera(self, index: int):
-        if self._cap is not None:
-            self._cap.release()
-            self._cap = None
-        # DirectShow opens far faster than MSMF on Windows; default elsewhere.
-        if platform.system() == "Windows":
-            cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-        else:
-            cap = cv2.VideoCapture(index)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        return cap
-
-    # --- main loop ------------------------------------------------------------
-    def _run(self) -> None:
-        if self._no_camera:
-            self._run_no_camera()
-            return
-
-        self._analyzer = FaceHandsAnalyzer()
-        last_t = time.time()
-        try:
-            while self._running:
-                cfg = self.get_config()
-
-                if self._reopen:
-                    self._cap = self._open_camera(cfg.camera_index)
-                    self._reopen = False
-                    if self._cap is None or not self._cap.isOpened():
-                        self._cam_error = f"Cannot open camera {cfg.camera_index}"
-                        self._publish(utils.draw_message(960, 540, self._cam_error), cfg, set(), None)
-                        time.sleep(0.5)
-                        continue
-                    self._cam_error = None
-
-                ok, frame = self._cap.read()
-                if not ok or frame is None:
-                    self._cam_error = "Camera read failed"
-                    self._publish(utils.draw_message(960, 540, self._cam_error), cfg, set(), None)
-                    self._reopen = True
-                    time.sleep(0.2)
-                    continue
-
-                if cfg.mirror:
-                    frame = cv2.flip(frame, 1)
-
-                metrics = self._maybe_detect(frame)
-                now = time.time()
-                violations = self._evaluate(cfg, metrics, now)
-                guard_active = cfg.guard_enabled and bool(violations)
-                out = self._apply_guard(frame, cfg, guard_active, metrics)
-
-                # Phase 2: mirror the SAFE frame to a virtual camera if enabled.
-                oh, ow = out.shape[:2]
-                self._ensure_vcam(cfg, ow, oh)
-                self._send_vcam(out)
-
-                dt = now - last_t
-                last_t = now
-                if dt > 0:
-                    self._fps = 0.9 * self._fps + 0.1 * (1.0 / dt)
-
-                self._publish(out, cfg, violations, metrics, guard_active)
-        finally:
-            self._close_vcam()
-            if self._cap is not None:
-                self._cap.release()
-            if self._analyzer is not None:
-                self._analyzer.close()
-
-    def _run_no_camera(self) -> None:
-        """Test/CI mode: serve a placeholder, never touch the webcam."""
-        frame = utils.draw_message(960, 540, "CAMERA DISABLED (test mode)")
-        while self._running:
+    def _process(self, frame: np.ndarray) -> Tuple[Optional[bytes], Dict]:
+        with self._proc_lock:
+            if self._analyzer is None:
+                self._analyzer = FaceHandsAnalyzer()
             cfg = self.get_config()
-            self._publish(frame, cfg, set(), None, guard_active=False)
-            time.sleep(0.2)
+
+            if cfg.mirror:
+                frame = cv2.flip(frame, 1)
+
+            metrics = self._maybe_detect(frame)
+            now = time.time()
+            violations = self._evaluate(cfg, metrics, now)
+            guard_active = cfg.guard_enabled and bool(violations)
+            out = self._apply_guard(frame, cfg, guard_active, metrics)
+
+            # Phase 2: mirror the SAFE frame to a virtual camera if enabled.
+            oh, ow = out.shape[:2]
+            self._ensure_vcam(cfg, ow, oh)
+            self._send_vcam(out)
+
+            dt = now - self._last_t
+            self._last_t = now
+            if 0 < dt < 1.0:
+                self._fps = 0.9 * self._fps + 0.1 * (1.0 / dt)
+
+            jpeg = utils.encode_jpeg(out, 80)
+            status = {
+                "guard_active": guard_active,
+                "violations": sorted(violations),
+                "violation_labels": [VIOLATION_LABELS[v] for v in sorted(violations)],
+                "action": cfg.guard_action,
+                "fps": round(self._fps, 1),
+                "virtual_cam_active": self._vcam is not None,
+                "virtual_cam_error": self._vcam_error,
+            }
+            if metrics is not None:
+                status.update(metrics.as_status())
+            return jpeg, status
 
     # --- helpers --------------------------------------------------------------
     def _maybe_detect(self, frame: np.ndarray) -> Optional[FrameMetrics]:
@@ -263,20 +216,14 @@ class PrivacyEngine:
             return
         if self._vcam is not None and self._vcam_dims == (w, h):
             return
-        # Already failed to open at this resolution: wait for a toggle off/on
-        # instead of hammering the driver every frame.
         if self._vcam is None and self._vcam_error is not None:
-            return
+            return  # already failed; wait for a toggle off/on
         self._close_vcam()
         try:
             import pyvirtualcam
 
             self._vcam = pyvirtualcam.Camera(
-                width=w,
-                height=h,
-                fps=30,
-                fmt=pyvirtualcam.PixelFormat.BGR,
-                print_fps=False,
+                width=w, height=h, fps=30, fmt=pyvirtualcam.PixelFormat.BGR, print_fps=False
             )
             self._vcam_dims = (w, h)
             self._vcam_error = None
@@ -302,30 +249,3 @@ class PrivacyEngine:
                 pass
         self._vcam = None
         self._vcam_dims = None
-
-    def _publish(
-        self,
-        out: np.ndarray,
-        cfg: GuardConfig,
-        violations: Set[str],
-        metrics: Optional[FrameMetrics],
-        guard_active: bool = False,
-    ) -> None:
-        jpeg = utils.encode_jpeg(out, 80)
-        status = {
-            "guard_active": guard_active,
-            "violations": sorted(violations),
-            "violation_labels": [VIOLATION_LABELS[v] for v in sorted(violations)],
-            "action": cfg.guard_action,
-            "fps": round(self._fps, 1),
-            "camera_error": self._cam_error,
-            "virtual_cam_active": self._vcam is not None,
-            "virtual_cam_error": self._vcam_error,
-        }
-        if metrics is not None:
-            status.update(metrics.as_status())
-        with self._lock:
-            if jpeg is not None:
-                self._latest_jpeg = jpeg
-                self._seq += 1
-            self._status = status

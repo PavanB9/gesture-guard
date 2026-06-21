@@ -41,9 +41,6 @@ class GuardConfig(BaseModel):
     # 0 = least sensitive (hard to trigger), 1 = most sensitive (easy).
     sensitivity: float = Field(default=0.5, ge=0.0, le=1.0)
 
-    # Webcam device index (0 is the default camera).
-    camera_index: int = Field(default=0, ge=0)
-
     # Mirror the preview like a selfie cam.
     mirror: bool = True
 

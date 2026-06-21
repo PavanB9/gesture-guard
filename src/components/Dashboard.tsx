@@ -7,9 +7,13 @@ import VideoPreview from "./VideoPreview";
 interface DashboardProps {
   connected: boolean;
   portError: string | null;
+  cameraError: string | null;
   status: GuardStatus | null;
   config: GuardConfig | null;
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  devices: MediaDeviceInfo[];
+  deviceId: string | null;
+  setDeviceId: (id: string | null) => void;
   update: (partial: Partial<GuardConfig>) => void;
   updateDebounced: (
     partial: Partial<GuardConfig>,
@@ -21,9 +25,13 @@ interface DashboardProps {
 export default function Dashboard({
   connected,
   portError,
+  cameraError,
   status,
   config,
   canvasRef,
+  devices,
+  deviceId,
+  setDeviceId,
   update,
   updateDebounced,
 }: DashboardProps) {
@@ -58,7 +66,7 @@ export default function Dashboard({
 
       {portError && (
         <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-950/40 px-4 py-2 text-sm text-amber-300">
-          Could not reach the sidecar port ({portError}). In a browser dev session,
+          Could not reach the engine port ({portError}). In a browser dev session,
           start the engine manually on port 8000.
         </div>
       )}
@@ -66,16 +74,24 @@ export default function Dashboard({
       {/* Main */}
       <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-4">
-          <VideoPreview canvasRef={canvasRef} status={status} connected={connected} />
+          <VideoPreview
+            canvasRef={canvasRef}
+            status={status}
+            connected={connected}
+            cameraError={cameraError}
+          />
           <p className="text-center text-xs text-zinc-600">
-            The feed never leaves this machine — capture, detection and blurring all
-            run in the local Python sidecar.
+            The feed never leaves this machine — the window captures your camera and
+            the local engine does all detection and blurring.
           </p>
         </div>
         <aside className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-5">
           <ControlPanel
             config={config}
             status={status}
+            devices={devices}
+            deviceId={deviceId}
+            setDeviceId={setDeviceId}
             update={update}
             updateDebounced={updateDebounced}
           />

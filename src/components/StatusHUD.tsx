@@ -54,12 +54,6 @@ export default function StatusHUD({ status, connected }: StatusHUDProps) {
         </div>
       )}
 
-      {/* Camera error */}
-      {status?.camera_error && (
-        <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-red-900/80 px-3 py-1.5 text-xs text-red-200 backdrop-blur">
-          {status.camera_error}
-        </div>
-      )}
     </>
   );
 }

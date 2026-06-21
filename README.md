@@ -58,9 +58,11 @@ Python sidecar (FastAPI + uvicorn) — PyInstaller single-file binary
     → yawn / face-touch / intrusion detectors → blur or BRB → stream the SAFE frame
 ```
 
-The **Python side owns the camera**: it captures, detects, and produces the safe
-frame, then streams it to the dashboard. The browser never touches `getUserMedia`,
-which keeps things simple and robust across Windows and macOS.
+The **app window owns the camera** (`getUserMedia`, so the OS grants camera access
+to the app itself) and streams JPEG frames to the local engine over `/ws/process`;
+the engine runs detection, produces the safe frame, and returns it. Nothing leaves
+the machine. (Earlier versions had the Python engine open the camera directly, but a
+separate helper process can't get its own camera permission on macOS.)
 
 | Area            | Folder         |
 | --------------- | -------------- |

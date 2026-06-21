@@ -73,6 +73,19 @@ def main() -> int:
 
     _check("pyvirtualcam available", hasattr(pyvirtualcam.PixelFormat, "BGR"))
 
+    # 6. End-to-end frame processing (browser sends a JPEG -> safe JPEG back).
+    from .privacy_engine import PrivacyEngine
+
+    eng = PrivacyEngine()
+    eng.start()
+    try:
+        in_jpeg = utils.encode_jpeg(np.zeros((480, 640, 3), dtype=np.uint8))
+        out_jpeg, st = eng.process_jpeg(in_jpeg)
+        _check("process_jpeg returns a JPEG", out_jpeg is not None and out_jpeg[:2] == b"\xff\xd8")
+        _check("process_jpeg returns status", isinstance(st, dict) and "guard_active" in st)
+    finally:
+        eng.stop()
+
     print("ALL CHECKS PASSED")
     return 0
 

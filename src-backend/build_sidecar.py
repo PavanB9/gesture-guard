@@ -1,10 +1,9 @@
-"""Freeze the privacy engine and place it in ``src-tauri/resources/engine/``.
+"""Freeze the privacy engine (one-folder) into ``src-tauri/resources/engine/``.
 
-- Windows/Linux: a PyInstaller **one-folder** build (``resources/engine/privacy-engine[.exe]``).
-- macOS: PyInstaller's **.app BUNDLE** (correct Contents/Frameworks layout) carrying its
-  own ``NSCameraUsageDescription`` so the engine can prompt for camera access. Each inner
-  Mach-O is ad-hoc signed individually -- NOT ``codesign --deep`` on the .app, which mangles
-  the bundled Python framework (the v0.1.3 ``_struct`` failure).
+The engine no longer opens the camera, so no macOS .app wrapper / camera
+entitlement is needed -- this plain one-folder layout runs reliably on both
+Windows and macOS. On macOS every Mach-O is ad-hoc signed individually so the
+libraries load with consistent signatures.
 
     cd src-backend
     .venv/Scripts/python build_sidecar.py        # Windows
@@ -24,21 +23,13 @@ ROOT = HERE.parent  # repo root
 RESOURCE_DIR = ROOT / "src-tauri" / "resources" / "engine"
 
 
-def sign_and_dump(appdir: Path) -> None:
-    # Sign every Mach-O individually so they load with consistent ad-hoc signatures.
+def adhoc_sign_macos(folder: Path) -> None:
+    print("Ad-hoc signing engine Mach-O files for macOS...")
     subprocess.run(
         ["bash", "-c",
-         f'find "{appdir}" -type f \\( -name "*.so" -o -name "*.dylib" -o -name "Python" \\) '
-         f"-exec codesign --force --sign - {{}} +"],
-        check=False,
-    )
-    subprocess.run(
-        ["codesign", "--force", "--sign", "-", str(appdir / "Contents" / "MacOS" / "privacy-engine")],
-        check=False,
-    )
-    # Dump the layout into the build log for ground truth if anything misbehaves.
-    subprocess.run(
-        ["bash", "-c", f'echo "--- engine .app layout ---"; find "{appdir}" -maxdepth 4 | head -100'],
+         f'find "{folder}" -type f \\( -name "*.so" -o -name "*.dylib" -o -name "Python" \\) '
+         f"-exec codesign --force --sign - {{}} + ; "
+         f'codesign --force --sign - "{folder}/privacy-engine"'],
         check=False,
     )
 
@@ -60,32 +51,27 @@ def main() -> None:
 
     fetch_models.fetch()
 
-    # 2. Freeze with PyInstaller (uses this interpreter == the venv).
-    print("Running PyInstaller (takes a few minutes)...")
+    # 2. Freeze with PyInstaller (one-folder; uses this interpreter == the venv).
+    print("Running PyInstaller (one-folder; takes a few minutes)...")
     subprocess.run(
         [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "gesture_guard.spec"],
         cwd=str(HERE),
         check=True,
     )
 
-    # 3. Place into a fresh Tauri resources dir.
+    built = HERE / "dist" / "privacy-engine"
+    if not built.is_dir():
+        raise FileNotFoundError(f"build output not found: {built}")
+
+    # 3. Place the folder contents into a fresh Tauri resources dir.
     if RESOURCE_DIR.exists():
         shutil.rmtree(RESOURCE_DIR)
-    RESOURCE_DIR.mkdir(parents=True, exist_ok=True)
+    _copy_into(built, RESOURCE_DIR)
 
     if platform.system() == "Darwin":
-        built = HERE / "dist" / "privacy-engine.app"
-        if not built.is_dir():
-            raise FileNotFoundError(f"build output not found: {built}")
-        dest = RESOURCE_DIR / "privacy-engine.app"
-        shutil.copytree(built, dest, symlinks=True)
-        sign_and_dump(dest)
-        launcher = dest / "Contents" / "MacOS" / "privacy-engine"
+        adhoc_sign_macos(RESOURCE_DIR)
+        launcher = RESOURCE_DIR / "privacy-engine"
     else:
-        built = HERE / "dist" / "privacy-engine"
-        if not built.is_dir():
-            raise FileNotFoundError(f"build output not found: {built}")
-        _copy_into(built, RESOURCE_DIR)
         launcher = RESOURCE_DIR / "privacy-engine.exe"
 
     print(f"\nEngine bundled at: {RESOURCE_DIR}")
