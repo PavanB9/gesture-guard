@@ -102,6 +102,15 @@ export function useGuardProcessor(
     };
 
     const startCamera = async () => {
+      const secure = typeof window !== "undefined" ? window.isSecureContext : false;
+      // In a non-secure context macOS WKWebView doesn't even expose mediaDevices.
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError(
+          `Camera API unavailable in this webview (secureContext=${secure}). ` +
+            "The page is likely not a secure context.",
+        );
+        return;
+      }
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: deviceId
@@ -124,14 +133,14 @@ export function useGuardProcessor(
         connectWs();
       } catch (e) {
         if (cancelled) return;
-        const name = (e as DOMException)?.name || "";
-        setCameraError(
+        const name = (e as DOMException)?.name || "UnknownError";
+        const base =
           name === "NotAllowedError" || name === "SecurityError"
-            ? "Camera permission denied. Allow camera access for this app, then reopen it."
+            ? "Camera was blocked by the webview"
             : name === "NotFoundError" || name === "OverconstrainedError"
-              ? "No usable camera found. Try another camera from the dropdown."
-              : `Camera error: ${(e as Error)?.message || e}`,
-        );
+              ? "No usable camera found — try another from the dropdown"
+              : "Camera error";
+        setCameraError(`${base}. [${name}; secureContext=${secure}]`);
       }
     };
 
