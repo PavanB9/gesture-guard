@@ -62,6 +62,9 @@ exe = EXE(
     entitlements_file=None,
 )
 
+# Plain one-folder output on every platform. On macOS, build_sidecar.py wraps
+# this folder in a thin hand-built .app (Info.plist only) so the engine keeps
+# this exact working layout while still carrying NSCameraUsageDescription.
 coll = COLLECT(
     exe,
     a.binaries,
@@ -71,25 +74,3 @@ coll = COLLECT(
     upx_exclude=[],
     name="privacy-engine",
 )
-
-import sys as _sys
-
-if _sys.platform == "darwin":
-    # On macOS, wrap the one-folder build in a minimal .app so the engine
-    # carries its OWN Info.plist with NSCameraUsageDescription. A bare helper
-    # executable in Resources/ has no usage description, so macOS denies camera
-    # access without ever prompting; an .app bundle prompts for itself.
-    app = BUNDLE(
-        coll,
-        name="privacy-engine.app",
-        icon=None,
-        bundle_identifier="com.pavanb9.gestureguard.engine",
-        info_plist={
-            "NSCameraUsageDescription": "Gesture Guard analyzes your webcam locally to "
-            "blur the feed when it detects unprofessional gestures. Video never leaves "
-            "your device.",
-            "LSUIElement": True,
-            "CFBundleName": "Gesture Guard Engine",
-            "CFBundleDisplayName": "Gesture Guard Engine",
-        },
-    )
