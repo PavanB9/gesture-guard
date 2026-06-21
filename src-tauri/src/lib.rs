@@ -58,10 +58,13 @@ fn spawn_engine(app: &tauri::AppHandle, port: u16) -> std::io::Result<Child> {
 
     #[cfg(not(debug_assertions))]
     {
-        // Release: the bundled one-folder engine lives under <resources>/engine.
+        // Release: the bundled engine lives under <resources>/engine.
         #[cfg(target_os = "windows")]
         let rel = "engine/privacy-engine.exe";
-        #[cfg(not(target_os = "windows"))]
+        // macOS: a .app bundle so the engine carries its own camera usage string.
+        #[cfg(target_os = "macos")]
+        let rel = "engine/privacy-engine.app/Contents/MacOS/privacy-engine";
+        #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
         let rel = "engine/privacy-engine";
 
         let exe = app

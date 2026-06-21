@@ -16,20 +16,23 @@ import numpy as np
 
 
 def resource_path(*parts: str) -> Path:
-    """Resolve a bundled resource path for both dev and frozen execution.
+    """Resolve a bundled resource path across dev and every frozen layout.
 
-    Joins are done with ``pathlib`` so Windows backslashes and POSIX forward
-    slashes are handled transparently.
+    PyInstaller places data differently for one-file, one-folder, and macOS
+    ``.app`` BUNDLE builds, so we search a few candidate roots (joins use
+    ``pathlib`` for cross-platform safety) and return the first that exists.
     """
+    candidates = []
     base = getattr(sys, "_MEIPASS", None)
     if base is not None:
-        # Frozen one-file bundle: assets are unpacked next to the package.
-        root = Path(base) / "app"
-        if not root.exists():
-            root = Path(base)
-    else:
-        root = Path(__file__).resolve().parent  # .../app
-    return root.joinpath(*parts)
+        candidates += [Path(base) / "app", Path(base)]
+    # Dev (running from source): this file lives in .../app/utils.py
+    candidates.append(Path(__file__).resolve().parent)
+    for root in candidates:
+        candidate = root.joinpath(*parts)
+        if candidate.exists():
+            return candidate
+    return candidates[0].joinpath(*parts)
 
 
 def encode_jpeg(frame: np.ndarray, quality: int = 80) -> Optional[bytes]:

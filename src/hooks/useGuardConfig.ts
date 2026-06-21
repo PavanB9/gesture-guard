@@ -12,11 +12,22 @@ export function useGuardConfig(port: number | null) {
   useEffect(() => {
     if (port == null) return;
     let cancelled = false;
-    fetchConfig(port)
-      .then((c) => !cancelled && setConfig(c))
-      .catch(() => {});
+    let timer: number | undefined;
+    // The engine takes a few seconds to boot, so retry until the first
+    // config load succeeds (otherwise the panel is stuck on "Loading settings").
+    const load = () => {
+      fetchConfig(port)
+        .then((c) => {
+          if (!cancelled) setConfig(c);
+        })
+        .catch(() => {
+          if (!cancelled) timer = window.setTimeout(load, 1000);
+        });
+    };
+    load();
     return () => {
       cancelled = true;
+      if (timer) window.clearTimeout(timer);
     };
   }, [port]);
 

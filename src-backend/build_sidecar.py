@@ -1,10 +1,10 @@
-"""Freeze the privacy engine (one-folder) into ``src-tauri/resources/engine/``.
+"""Freeze the privacy engine and place it in ``src-tauri/resources/engine/``.
 
-The folder is bundled by Tauri as a resource and spawned at runtime. On macOS,
-every Mach-O in the folder is ad-hoc signed so the launcher and everything it
-dlopen's (MediaPipe, OpenCV, the Python framework, ...) share one signature —
-a one-file build would unpack a mismatched Python.framework at runtime, which
-Apple Silicon refuses to load ("different Team IDs").
+- Windows/Linux: a PyInstaller **one-folder** build (``resources/engine/privacy-engine[.exe]``).
+- macOS: a one-folder build wrapped in a **.app bundle** so the engine carries its
+  own ``NSCameraUsageDescription`` and can prompt for camera access (a bare helper
+  in Resources/ is denied silently). The whole .app is ad-hoc signed so its libs
+  share one signature (one-file would unpack a mismatched framework at runtime).
 
     cd src-backend
     .venv/Scripts/python build_sidecar.py        # Windows
@@ -24,14 +24,9 @@ ROOT = HERE.parent  # repo root
 RESOURCE_DIR = ROOT / "src-tauri" / "resources" / "engine"
 
 
-def adhoc_sign_macos(folder: Path) -> None:
-    print("Ad-hoc signing engine Mach-O files for macOS...")
-    script = (
-        f'find "{folder}" -type f \\( -name "*.so" -o -name "*.dylib" -o -name "Python" \\) '
-        f"-exec codesign --force --sign - {{}} + ; "
-        f'codesign --force --sign - "{folder}/privacy-engine"'
-    )
-    subprocess.run(["bash", "-c", script], check=False)
+def adhoc_sign_macos(app_path: Path) -> None:
+    print(f"Ad-hoc signing {app_path.name}...")
+    subprocess.run(["codesign", "--force", "--deep", "--sign", "-", str(app_path)], check=False)
 
 
 def main() -> None:
@@ -41,7 +36,7 @@ def main() -> None:
 
     fetch_models.fetch()
 
-    # 2. Freeze with PyInstaller (one-folder; uses this interpreter == the venv).
+    # 2. Freeze with PyInstaller (uses this interpreter == the venv).
     print("Running PyInstaller (one-folder; takes a few minutes)...")
     subprocess.run(
         [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "gesture_guard.spec"],
@@ -49,23 +44,27 @@ def main() -> None:
         check=True,
     )
 
-    built_dir = HERE / "dist" / "privacy-engine"
-    if not built_dir.is_dir():
-        raise FileNotFoundError(f"build output not found: {built_dir}")
+    is_mac = platform.system() == "Darwin"
+    built = HERE / "dist" / ("privacy-engine.app" if is_mac else "privacy-engine")
+    if not built.exists():
+        raise FileNotFoundError(f"build output not found: {built}")
 
-    # 3. Place the whole folder into the Tauri resources dir.
+    # 3. Place into a fresh Tauri resources dir.
     if RESOURCE_DIR.exists():
         shutil.rmtree(RESOURCE_DIR)
-    RESOURCE_DIR.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(built_dir, RESOURCE_DIR)
+    RESOURCE_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 4. Sign in place (macOS only).
-    if platform.system() == "Darwin":
-        adhoc_sign_macos(RESOURCE_DIR)
+    if is_mac:
+        dest = RESOURCE_DIR / "privacy-engine.app"
+        shutil.copytree(built, dest, symlinks=True)
+        adhoc_sign_macos(dest)
+        launcher = dest / "Contents" / "MacOS" / "privacy-engine"
+    else:
+        shutil.copytree(built, RESOURCE_DIR, dirs_exist_ok=True)
+        launcher = RESOURCE_DIR / "privacy-engine.exe"
 
-    exe = "privacy-engine.exe" if platform.system() == "Windows" else "privacy-engine"
     print(f"\nEngine bundled at: {RESOURCE_DIR}")
-    print(f"  launcher: {RESOURCE_DIR / exe}")
+    print(f"  launcher: {launcher}")
 
 
 if __name__ == "__main__":
