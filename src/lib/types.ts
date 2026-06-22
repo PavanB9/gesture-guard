@@ -10,6 +10,7 @@ export interface GuardConfig {
   mirror: boolean;
   show_overlay: boolean;
   virtual_cam: boolean;
+  camera_index: number;
 }
 
 export interface GuardStatus {

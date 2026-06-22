@@ -67,12 +67,13 @@ async def ws_process(ws: WebSocket):
     loop = asyncio.get_event_loop()
     try:
         while True:
-            data = await ws.receive_bytes()
-            # Run the CPU-bound detection off the event loop.
-            jpeg, status = await loop.run_in_executor(None, engine.process_jpeg, data)
+            # We still wait for a message from the client to act as a backpressure "tick"
+            _ = await ws.receive_bytes()
+            # Capture and process the next frame
+            jpeg, status = await loop.run_in_executor(None, engine.process_next_frame)
             await ws.send_text(json.dumps(status))
             # Always return a binary frame so the client can pace the next send.
-            await ws.send_bytes(jpeg if jpeg is not None else data)
+            await ws.send_bytes(jpeg if jpeg is not None else b"")
     except WebSocketDisconnect:
         pass
     except Exception:

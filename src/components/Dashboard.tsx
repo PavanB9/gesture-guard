@@ -11,9 +11,6 @@ interface DashboardProps {
   status: GuardStatus | null;
   config: GuardConfig | null;
   canvasRef: RefObject<HTMLCanvasElement | null>;
-  devices: MediaDeviceInfo[];
-  deviceId: string | null;
-  setDeviceId: (id: string | null) => void;
   update: (partial: Partial<GuardConfig>) => void;
   updateDebounced: (
     partial: Partial<GuardConfig>,
@@ -29,9 +26,6 @@ export default function Dashboard({
   status,
   config,
   canvasRef,
-  devices,
-  deviceId,
-  setDeviceId,
   update,
   updateDebounced,
 }: DashboardProps) {
@@ -89,9 +83,6 @@ export default function Dashboard({
           <ControlPanel
             config={config}
             status={status}
-            devices={devices}
-            deviceId={deviceId}
-            setDeviceId={setDeviceId}
             update={update}
             updateDebounced={updateDebounced}
           />
