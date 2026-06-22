@@ -14,13 +14,20 @@ one-time download of the open-source MediaPipe model files at build time.
 
 ---
 
+## Platform status
+
+| Platform | Status |
+| --- | --- |
+| **Windows** | ✅ Working |
+| **macOS (Apple Silicon)** | ⚠️ **Not working yet** — the app runs but can't get camera permission ([#1](https://github.com/PavanB9/gesture-guard/issues/1)) |
+
 ## Download
 
 Prebuilt installers are published on the
 **[Releases](https://github.com/PavanB9/gesture-guard/releases)** page:
 
 - **Windows** — `Gesture Guard_<version>_x64-setup.exe` (or the `.msi`)
-- **macOS (Apple Silicon)** — `Gesture Guard_<version>_aarch64.dmg`
+- **macOS (Apple Silicon)** — `Gesture Guard_<version>_aarch64.dmg` — *experimental, camera not yet functional*
 
 > The builds are **unsigned** (no paid Apple Developer / code-signing cert), so the OS
 > will warn on first launch:
