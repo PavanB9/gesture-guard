@@ -98,8 +98,17 @@ fn kill_engine(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+
+    // macOS: native camera-permission plugin so the app registers with the system
+    // (prompts + shows up in System Settings -> Privacy & Security -> Camera).
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.plugin(tauri_plugin_macos_permissions::init());
+    }
+
+    builder
         .setup(|app| {
             let port = find_free_port();
             let child = spawn_engine(app.handle(), port).expect("failed to spawn privacy engine");

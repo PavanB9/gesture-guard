@@ -102,6 +102,18 @@ export function useGuardProcessor(
     };
 
     const startCamera = async () => {
+      // macOS: ask the OS for camera permission natively first. This registers
+      // the app in System Settings -> Privacy -> Camera and shows the prompt, so
+      // the subsequent getUserMedia call has permission. No-op elsewhere.
+      try {
+        if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+          const mod = await import("tauri-plugin-macos-permissions-api");
+          if (mod?.requestCameraPermission) await mod.requestCameraPermission();
+        }
+      } catch {
+        /* not macOS or plugin unavailable */
+      }
+
       const secure = typeof window !== "undefined" ? window.isSecureContext : false;
       // In a non-secure context macOS WKWebView doesn't even expose mediaDevices.
       if (!navigator.mediaDevices?.getUserMedia) {

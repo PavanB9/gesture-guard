@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "macos-permissions-cap",
+  "description": "Allows requesting native camera permission on macOS.",
+  "platforms": ["macOS"],
+  "windows": ["main"],
+  "permissions": ["macos-permissions:default"]
+}
