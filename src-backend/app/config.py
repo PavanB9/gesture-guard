@@ -52,6 +52,9 @@ class GuardConfig(BaseModel):
     # camera driver (e.g. OBS Virtual Camera) to be installed on the machine.
     virtual_cam: bool = False
 
+    # The index of the camera to open.
+    camera_index: int = 0
+
     # --- Derived thresholds ---------------------------------------------------
     def yawn_mar_threshold(self) -> float:
         """Mouth-aspect-ratio cut-off. Higher sensitivity -> lower bar."""

@@ -44,6 +44,7 @@ class PrivacyEngine:
 
         self._analyzer: Optional[FaceHandsAnalyzer] = None
         self._running = False
+        self._cap = None
 
         self._gates = {
             "yawn": TemporalGate(YAWN_HOLD_S, RELEASE_S),
@@ -66,11 +67,21 @@ class PrivacyEngine:
         return self._running
 
     def start(self) -> None:
+        import platform
         self._running = True
+        index = self._config.camera_index
+        self._cap = (
+            cv2.VideoCapture(index, cv2.CAP_DSHOW)
+            if platform.system() == "Windows"
+            else cv2.VideoCapture(index)
+        )
 
     def stop(self) -> None:
         self._running = False
         with self._proc_lock:
+            if self._cap is not None:
+                self._cap.release()
+                self._cap = None
             self._close_vcam()
             if self._analyzer is not None:
                 self._analyzer.close()
@@ -86,16 +97,30 @@ class PrivacyEngine:
             merged = self._config.model_dump()
             merged.update({k: v for k, v in partial.items() if k in merged})
             new_cfg = GuardConfig(**merged)
+            
+            if new_cfg.camera_index != self._config.camera_index and self._cap is not None:
+                import platform
+                self._cap.release()
+                index = new_cfg.camera_index
+                self._cap = (
+                    cv2.VideoCapture(index, cv2.CAP_DSHOW)
+                    if platform.system() == "Windows"
+                    else cv2.VideoCapture(index)
+                )
+                
             self._config = new_cfg
             return new_cfg.model_copy()
 
     # --- frame processing -----------------------------------------------------
-    def process_jpeg(self, data: bytes) -> Tuple[Optional[bytes], Dict]:
-        """Decode a browser-supplied JPEG frame, guard it, return safe JPEG + status."""
-        arr = np.frombuffer(data, dtype=np.uint8)
-        frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if frame is None:
-            return None, {"guard_active": False, "violations": [], "error": "decode failed"}
+    def process_next_frame(self) -> Tuple[Optional[bytes], Dict]:
+        """Capture a frame from the camera, guard it, return safe JPEG + status."""
+        if self._cap is None or not self._cap.isOpened():
+            return None, {"guard_active": False, "violations": [], "error": "camera not opened"}
+        
+        ok, frame = self._cap.read()
+        if not ok or frame is None:
+            return None, {"guard_active": False, "violations": [], "error": "capture failed"}
+            
         return self._process(frame)
 
     def _process(self, frame: np.ndarray) -> Tuple[Optional[bytes], Dict]:

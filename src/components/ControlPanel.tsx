@@ -5,9 +5,6 @@ import SensitivitySlider from "./SensitivitySlider";
 interface ControlPanelProps {
   config: GuardConfig | null;
   status: GuardStatus | null;
-  devices: MediaDeviceInfo[];
-  deviceId: string | null;
-  setDeviceId: (id: string | null) => void;
   update: (partial: Partial<GuardConfig>) => void;
   updateDebounced: (
     partial: Partial<GuardConfig>,
@@ -30,9 +27,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ControlPanel({
   config,
   status,
-  devices,
-  deviceId,
-  setDeviceId,
   update,
   updateDebounced,
 }: ControlPanelProps) {
@@ -121,21 +115,19 @@ export default function ControlPanel({
       <Section title="Camera">
         <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
           <div className="space-y-1">
-            <span className="text-sm font-medium text-zinc-100">Device</span>
+            <span className="text-sm font-medium text-zinc-100">Device Index</span>
             <select
-              value={deviceId ?? ""}
-              onChange={(e) => setDeviceId(e.target.value || null)}
+              value={config.camera_index ?? 0}
+              onChange={(e) => update({ camera_index: parseInt(e.target.value, 10) })}
               className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 outline-none focus:border-cyan-500"
             >
-              <option value="">Default camera</option>
-              {devices.map((d, i) => (
-                <option key={d.deviceId} value={d.deviceId}>
-                  {d.label || `Camera ${i + 1}`}
-                </option>
-              ))}
+              <option value="0">Camera 0 (Default)</option>
+              <option value="1">Camera 1</option>
+              <option value="2">Camera 2</option>
+              <option value="3">Camera 3</option>
             </select>
             <p className="text-[11px] text-zinc-600">
-              Pick your built-in camera here if it defaults to an iPhone.
+              Pick your camera index (0 is usually the built-in camera).
             </p>
           </div>
           <FeatureToggle

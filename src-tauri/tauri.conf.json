@@ -31,7 +31,8 @@
       "resources/engine/": "engine"
     },
     "macOS": {
-      "signingIdentity": "-"
+      "signingIdentity": "-",
+      "entitlements": "entitlements.mac.plist"
     },
     "icon": [
       "icons/32x32.png",
