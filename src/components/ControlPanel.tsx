@@ -1,3 +1,4 @@
+import { openExternal } from "../lib/api";
 import type { GuardAction, GuardConfig, GuardStatus } from "../lib/types";
 import FeatureToggle from "./FeatureToggle";
 import SensitivitySlider from "./SensitivitySlider";
@@ -169,8 +170,14 @@ export default function ControlPanel({
           {config.virtual_cam && status?.virtual_cam_error && (
             <div className="rounded-md bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-300">
               No virtual-camera driver found. Install{" "}
-              <span className="font-semibold">OBS Studio</span> (free) once — you don’t
-              need to run it.
+              <button
+                type="button"
+                onClick={() => openExternal("https://obsproject.com/")}
+                className="font-semibold underline underline-offset-2 hover:text-amber-200"
+              >
+                OBS Studio
+              </button>{" "}
+              (free) once — you don’t need to run it.
             </div>
           )}
         </div>
