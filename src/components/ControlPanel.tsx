@@ -155,16 +155,23 @@ export default function ControlPanel({
         <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
           <FeatureToggle
             label="Virtual camera"
-            description="Feed the guarded video to Zoom / Teams"
+            description="Use the guarded feed as a webcam in Zoom / Teams / Meet"
             checked={config.virtual_cam}
             accent="emerald"
             onChange={(v) => update({ virtual_cam: v })}
           />
           {config.virtual_cam && status?.virtual_cam_active && (
-            <div className="text-xs text-emerald-400">● Virtual camera output active</div>
+            <div className="rounded-md bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-300">
+              ● Live — in your call app, choose{" "}
+              <span className="font-semibold">“OBS Virtual Camera”</span> as the camera.
+            </div>
           )}
           {config.virtual_cam && status?.virtual_cam_error && (
-            <div className="text-xs text-amber-400">{status.virtual_cam_error}</div>
+            <div className="rounded-md bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-300">
+              No virtual-camera driver found. Install{" "}
+              <span className="font-semibold">OBS Studio</span> (free) once — you don’t
+              need to run it.
+            </div>
           )}
         </div>
       </Section>

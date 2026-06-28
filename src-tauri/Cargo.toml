@@ -1,6 +1,6 @@
 [package]
 name = "gesture-guard"
-version = "0.1.8"
+version = "0.1.9"
 description = "Local real-time webcam privacy guard"
 authors = ["you"]
 edition = "2021"
