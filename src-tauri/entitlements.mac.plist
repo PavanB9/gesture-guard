@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Tauri signs the app with the hardened runtime enabled. A hardened-runtime
+       process is FORBIDDEN from camera/mic capture unless these entitlements are
+       present in its signature — without them macOS denies silently: no prompt,
+       and the app never appears in System Settings -> Privacy -> Camera.
+       (This was the missing piece across v0.1.1–v0.1.8; see issue #1.) -->
+  <key>com.apple.security.device.camera</key>
+  <true/>
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
+</dict>
+</plist>

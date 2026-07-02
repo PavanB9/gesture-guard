@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Gesture Guard",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "identifier": "com.pavanb9.gestureguard",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -31,7 +31,9 @@
       "resources/engine/": "engine"
     },
     "macOS": {
-      "signingIdentity": "-"
+      "signingIdentity": "-",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist"
     },
     "icon": [
       "icons/32x32.png",
