@@ -16,6 +16,7 @@ Press Ctrl+C to stop.
 
 from __future__ import annotations
 
+import argparse
 import platform
 import time
 
@@ -26,8 +27,12 @@ from .detectors import FaceHandsAnalyzer
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Live metrics validation trace")
+    parser.add_argument(
+        "--camera", type=int, default=0, help="OpenCV camera index (default 0)"
+    )
+    index = parser.parse_args().camera
     cfg = GuardConfig()
-    index = cfg.camera_index
     cap = (
         cv2.VideoCapture(index, cv2.CAP_DSHOW)
         if platform.system() == "Windows"

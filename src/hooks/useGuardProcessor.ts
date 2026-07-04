@@ -45,12 +45,17 @@ export function useGuardProcessor(
       if (!ws || ws.readyState !== WebSocket.OPEN || !video || !offctx) return;
       if (inFlight && Date.now() - inFlightSince < INFLIGHT_TIMEOUT_MS) return;
       if (video.readyState < 2) return;
+      // Claim the in-flight slot *before* the async encode so a later tick
+      // can't slip past the gate while toBlob is still pending.
+      inFlight = true;
+      inFlightSince = Date.now();
       offctx.drawImage(video, 0, 0, off.width, off.height);
       off.toBlob(
         (blob) => {
-          if (!blob || !ws || ws.readyState !== WebSocket.OPEN) return;
-          inFlight = true;
-          inFlightSince = Date.now();
+          if (!blob || !ws || ws.readyState !== WebSocket.OPEN) {
+            inFlight = false;
+            return;
+          }
           blob.arrayBuffer().then((buf) => {
             if (ws && ws.readyState === WebSocket.OPEN) ws.send(buf);
             else inFlight = false;
@@ -62,20 +67,27 @@ export function useGuardProcessor(
     };
 
     const connectWs = () => {
-      ws = new WebSocket(`${wsBase(port)}/ws/process`);
-      ws.binaryType = "arraybuffer";
-      ws.onopen = () => {
+      // Keep a local handle: handlers must act on *this* socket, not whatever
+      // `ws` points to by the time they fire (a late error/close event from an
+      // abandoned socket must never tear down or double-reconnect a fresh one).
+      const sock = new WebSocket(`${wsBase(port)}/ws/process`);
+      ws = sock;
+      sock.binaryType = "arraybuffer";
+      sock.onopen = () => {
+        if (cancelled || ws !== sock) return;
         setConnected(true);
         inFlight = false;
         if (timer) window.clearInterval(timer);
         timer = window.setInterval(sendLoop, SEND_INTERVAL_MS);
       };
-      ws.onclose = () => {
+      sock.onclose = () => {
+        if (ws !== sock) return;
         setConnected(false);
         if (!cancelled) retry = window.setTimeout(connectWs, 1000);
       };
-      ws.onerror = () => ws?.close();
-      ws.onmessage = async (ev) => {
+      sock.onerror = () => sock.close();
+      sock.onmessage = async (ev) => {
+        if (ws !== sock) return;
         if (typeof ev.data === "string") {
           try {
             setStatus(JSON.parse(ev.data) as GuardStatus);

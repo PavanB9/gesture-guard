@@ -20,8 +20,9 @@ import json
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import ValidationError
 
 from .privacy_engine import PrivacyEngine
 
@@ -39,10 +40,21 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Gesture Guard Engine", version="0.1.0", lifespan=lifespan)
 
-# Local-only app; allow any origin for the REST endpoints (the webview origin is
-# tauri://localhost / http://localhost).
+# Only the app's own webview (and the Vite dev server) may talk to the engine.
+# A wildcard here would let any webpage in any local browser POST /api/config
+# and silently disarm the guard mid-call.
+ALLOWED_ORIGINS = [
+    "tauri://localhost",       # macOS / Linux webview
+    "http://tauri.localhost",  # Windows webview (WebView2)
+    "https://tauri.localhost",
+    "http://localhost:1420",   # Vite dev server
+    "http://127.0.0.1:1420",
+]
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -58,13 +70,23 @@ async def get_config():
 
 @app.post("/api/config")
 async def set_config(partial: dict):
-    return engine.update_config(partial).model_dump()
+    try:
+        return engine.update_config(partial).model_dump()
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors(include_url=False))
 
 
 @app.websocket("/ws/process")
 async def ws_process(ws: WebSocket):
+    # Browsers always send an Origin header on WebSocket handshakes; reject
+    # pages that are not our webview / dev server. (Non-browser clients on this
+    # machine could always talk to localhost directly — they are out of scope.)
+    origin = ws.headers.get("origin")
+    if origin is not None and origin not in ALLOWED_ORIGINS:
+        await ws.close(code=1008)
+        return
     await ws.accept()
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         while True:
             data = await ws.receive_bytes()

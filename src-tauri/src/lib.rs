@@ -68,7 +68,17 @@ fn spawn_engine(app: &tauri::AppHandle, port: u16) -> std::io::Result<Child> {
             .path()
             .resolve(rel, tauri::path::BaseDirectory::Resource)
             .expect("failed to resolve bundled engine path");
-        Command::new(exe).args(args).spawn()
+        let mut cmd = Command::new(exe);
+        cmd.args(args);
+        // The engine is a console-subsystem exe; a windows_subsystem="windows"
+        // parent has no console to inherit, so without this flag Windows pops a
+        // brand-new visible console window for the engine.
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        }
+        cmd.spawn()
     }
 }
 
