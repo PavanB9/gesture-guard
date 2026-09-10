@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Download Gesture Guard</title>
+<meta name="description" content="Download Gesture Guard for Windows and macOS. Free, open source, and entirely local — no account and no telemetry." />
+<link rel="icon" href="icon.png" />
+<meta property="og:title" content="Download Gesture Guard" />
+<meta property="og:description" content="Free and open source webcam privacy guard for Windows and macOS." />
+<meta property="og:image" content="icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true">
+        <defs><linearGradient id="bm2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#8B74FF"/><stop offset="1" stop-color="#3A1CA8"/>
+        </linearGradient></defs>
+        <rect width="1024" height="1024" rx="232" fill="url(#bm2)"/>
+        <path d="M316 312 Q316 290 340 290 L684 290 Q708 290 708 312 L708 548 C708 652 630 712 512 756 C394 712 316 652 316 548 Z" fill="#fff"/>
+        <circle cx="512" cy="498" r="134" fill="#1B0F52"/>
+        <circle cx="512" cy="498" r="52" fill="#35D0EE"/>
+      </svg>
+      Gesture Guard
+    </a>
+    <div class="nav-links">
+      <a class="nav-hide" href="./#catches">What it catches</a>
+      <a class="nav-hide" href="./#privacy">Privacy</a>
+      <a href="https://github.com/PavanB9/gesture-guard">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" style="padding-bottom:2.5rem">
+  <div class="wrap" style="max-width:760px">
+    <p class="eyebrow">Download</p>
+    <h1 style="font-size:clamp(2.1rem,4.4vw,3.1rem)">Get Gesture Guard</h1>
+    <p class="lede">
+      Free and open source. Pick your platform — the installer includes everything,
+      including the detection engine. No account, no sign-in, nothing to configure.
+    </p>
+    <p class="hero-note" id="relMeta">Loading the latest release…</p>
+  </div>
+</header>
+
+<section class="section" style="border-top:0;padding-top:0">
+  <div class="wrap">
+    <div class="dl-grid">
+
+      <article class="dl-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10 4.6v6.9H3V5.5Zm0 13 7 .9v-6.8H3v5.9ZM11 4.4 21 3v8.5H11V4.4Zm10 8.1V21l-10-1.4v-7.1h10Z"/></svg>
+          Windows
+        </h3>
+        <p class="dl-meta" id="winMeta">Windows 10 or 11 · 64-bit</p>
+        <div class="dl-actions">
+          <a class="btn btn-primary" id="winExe" href="https://github.com/PavanB9/gesture-guard/releases/latest">Download installer (.exe)</a>
+          <a class="btn btn-ghost btn-sm" id="winMsi" href="https://github.com/PavanB9/gesture-guard/releases/latest">.msi</a>
+        </div>
+        <div class="dl-req">
+          Includes the virtual camera feature. Install
+          <a href="https://obsproject.com/" style="color:var(--cyan)">OBS Studio</a> once to enable it —
+          you never need to open OBS.
+        </div>
+      </article>
+
+      <article class="dl-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.8c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.5 2.1-1.5 2.6-.4 6.5 1.1 8.6.7 1 1.6 2.2 2.7 2.1 1.1 0 1.5-.7 2.8-.7s1.6.7 2.8.7c1.1 0 1.9-1 2.6-2.1.8-1.2 1.2-2.4 1.2-2.4s-2.3-.9-2.3-3.2ZM14.3 5.9c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2Z"/></svg>
+          macOS
+        </h3>
+        <p class="dl-meta" id="macMeta">Apple Silicon (M1 and newer)</p>
+        <div class="dl-actions">
+          <a class="btn btn-primary" id="macDmg" href="https://github.com/PavanB9/gesture-guard/releases/latest">Download (.dmg)</a>
+        </div>
+        <div class="dl-req">
+          Camera permission is requested on first launch. Gesture Guard then appears in
+          System Settings → Privacy &amp; Security → Camera.
+        </div>
+      </article>
+
+    </div>
+
+    <div class="note">
+      <h4>First launch: the builds are unsigned</h4>
+      <p>
+        Gesture Guard ships without a paid code-signing certificate, so both systems will
+        warn you the first time. This is a cost thing, not a safety thing — the source is
+        public and you can build it yourself.
+      </p>
+      <p><b>Windows</b> — SmartScreen shows a blue box. Choose <b>More info</b> → <b>Run anyway</b>.</p>
+      <p>
+        <b>macOS</b> — Gatekeeper quarantines the app and may claim it is “damaged”. It isn't.
+        Clear the quarantine flag once:
+      </p>
+      <pre><code>xattr -cr "/Applications/Gesture Guard.app"</code></pre>
+    </div>
+
+    <div class="note">
+      <h4>What you need</h4>
+      <p>
+        A webcam, and roughly 400&nbsp;MB of disk space — the installer bundles the Python
+        detection engine and the MediaPipe models so the app is fully offline after install.
+      </p>
+      <p>
+        Prefer to build from source? The full setup is in the
+        <a href="https://github.com/PavanB9/gesture-guard#setup-offline-friendly" style="color:var(--cyan)">README</a>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <span>Gesture Guard — a local webcam privacy guard.</span>
+    <span>
+      <a href="https://github.com/PavanB9/gesture-guard">GitHub</a> ·
+      <a href="https://github.com/PavanB9/gesture-guard/releases">All releases</a> ·
+      <a href="./">Home</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+// Resolve the newest release so links and version never go stale. Falls back to
+// the releases page (which the buttons already point at) if the API is
+// unreachable or rate-limited.
+(function () {
+  var FALLBACK = 'https://github.com/PavanB9/gesture-guard/releases/latest';
+  var meta = document.getElementById('relMeta');
+
+  function mb(bytes) { return (bytes / 1048576).toFixed(1) + ' MB'; }
+
+  function wire(id, asset, metaId) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (asset) {
+      el.href = asset.browser_download_url;
+      if (metaId) {
+        var m = document.getElementById(metaId);
+        if (m) m.textContent = m.textContent + ' · ' + mb(asset.size);
+      }
+    } else {
+      el.href = FALLBACK;
+    }
+  }
+
+  fetch('https://api.github.com/repos/PavanB9/gesture-guard/releases/latest')
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (rel) {
+      var a = rel.assets || [];
+      function find(test) { return a.filter(test)[0]; }
+
+      wire('winExe', find(function (x) { return /-setup\.exe$/i.test(x.name); }), 'winMeta');
+      wire('winMsi', find(function (x) { return /\.msi$/i.test(x.name); }), null);
+      wire('macDmg', find(function (x) { return /\.dmg$/i.test(x.name); }), 'macMeta');
+
+      var when = new Date(rel.published_at).toLocaleDateString(undefined, {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+      meta.textContent = 'Latest release ' + rel.tag_name + ' · published ' + when;
+    })
+    .catch(function () {
+      meta.innerHTML = 'Grab the newest build from the <a href="' + FALLBACK +
+        '" style="color:var(--cyan)">releases page</a>.';
+    });
+})();
+</script>
+</body>
+</html>

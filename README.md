@@ -1,5 +1,7 @@
 # Gesture Guard 🛡️
 
+**[Website & downloads →](https://pavanb9.github.io/gesture-guard/)**
+
 A **completely local, real-time webcam privacy guard** for video calls. It watches
 your camera and instantly **blurs the feed** (or shows a *Be Right Back* screen)
 the moment it catches unprofessional behaviour:
@@ -19,7 +21,13 @@ one-time download of the open-source MediaPipe model files at build time.
 | Platform | Status |
 | --- | --- |
 | **Windows** | ✅ Working |
-| **macOS (Apple Silicon)** | ⚠️ **Not working yet** — the app runs but can't get camera permission ([#1](https://github.com/PavanB9/gesture-guard/issues/1)) |
+| **macOS (Apple Silicon)** | ✅ Working — camera permission fixed in **v0.1.11** ([#1](https://github.com/PavanB9/gesture-guard/issues/1)) |
+
+> **macOS camera permission** was the long-standing blocker. Tauri signs the app with the
+> **hardened runtime**, and a hardened-runtime process is forbidden from capturing video
+> unless `com.apple.security.device.camera` is in its signature — without it macOS denies
+> *silently*: no prompt, and the app never appears in System Settings → Privacy & Security →
+> Camera. Adding [`entitlements.mac.plist`](src-tauri/entitlements.mac.plist) fixed it.
 
 ## Download
 
@@ -27,7 +35,7 @@ Prebuilt installers are published on the
 **[Releases](https://github.com/PavanB9/gesture-guard/releases)** page:
 
 - **Windows** — `Gesture Guard_<version>_x64-setup.exe` (or the `.msi`)
-- **macOS (Apple Silicon)** — `Gesture Guard_<version>_aarch64.dmg` — *experimental, camera not yet functional*
+- **macOS (Apple Silicon)** — `Gesture Guard_<version>_aarch64.dmg`
 
 > The builds are **unsigned** (no paid Apple Developer / code-signing cert), so the OS
 > will warn on first launch:
@@ -55,14 +63,14 @@ git push origin v0.1.0
 
 ```
 Tauri 2 (Rust shell)
- ├─ picks a free localhost port, spawns the Python sidecar, kills it on exit
- └─ React + Vite + Tailwind dashboard (monitor + controls)
-        │  WS  ws://127.0.0.1:<port>/ws/stream   (status JSON + JPEG frames)
-        │  REST /api/config                       (toggles, sensitivity, action)
+ ├─ picks a free localhost port, spawns the Python engine, kills it on exit
+ └─ React + Vite + Tailwind dashboard — captures the webcam (getUserMedia)
+        │  WS  ws://127.0.0.1:<port>/ws/process  (JPEG frame out, status JSON + safe JPEG back)
+        │  REST /api/config                      (toggles, sensitivity, action)
         ▼
-Python sidecar (FastAPI + uvicorn) — PyInstaller single-file binary
- └─ OpenCV captures the webcam → MediaPipe Tasks (Face + Hand Landmarker)
-    → yawn / face-touch / intrusion detectors → blur or BRB → stream the SAFE frame
+Python engine (FastAPI + uvicorn) — PyInstaller one-folder build
+ └─ decode JPEG → MediaPipe Tasks (Face + Hand Landmarker)
+    → yawn / face-touch / intrusion detectors → blur or BRB → return the SAFE frame
 ```
 
 The **app window owns the camera** (`getUserMedia`, so the OS grants camera access
@@ -134,11 +142,15 @@ npm run tauri dev      # development
 npm run tauri build    # production installer
 ```
 
-`build_sidecar.py` runs PyInstaller and drops
-`privacy-engine-<target-triple>[.exe]` into `src-tauri/binaries/`, which Tauri
-bundles as an `externalBin` sidecar. The Rust core spawns it on launch and kills
-it when you close the window. (The sidecar is deliberately named differently
-from the app binary so Tauri's dev-mode copy doesn't collide with it.)
+`build_sidecar.py` runs PyInstaller (**one-folder**) and places the result in
+`src-tauri/resources/engine/`, which Tauri bundles as a **resource**. The Rust core
+resolves `engine/privacy-engine[.exe]` from the app's resource dir, spawns it on
+launch, and kills the whole process tree when you close the window.
+
+> One-folder (not one-file) is deliberate: on macOS a one-file build unpacks
+> `Python.framework` to a temp dir at runtime, and ad-hoc signing the `.app` re-signs
+> the launcher so its signature no longer matches the unpacked framework ("different
+> Team IDs") — macOS then refuses to load it. One-folder keeps everything signed in place.
 
 ### Frontend-only dev (no Tauri build)
 
@@ -170,10 +182,17 @@ below the threshold • have someone step in → `faces` becomes 2.
 
 ## macOS notes
 
-- Build the sidecar **on the Mac** so PyInstaller emits a native
-  `aarch64-apple-darwin` (Apple Silicon) or `x86_64-apple-darwin` (Intel) binary.
-- The first launch triggers the **camera permission** prompt (the app ships an
-  `NSCameraUsageDescription` in `src-tauri/Info.plist`).
+- Build the engine **on the Mac** so PyInstaller emits a native
+  `aarch64-apple-darwin` (Apple Silicon) or `x86_64-apple-darwin` (Intel) build.
+- First launch triggers the **camera permission** prompt, after which Gesture Guard
+  appears in System Settings → Privacy & Security → Camera. Two pieces are required
+  and both ship in the repo:
+  - [`Info.plist`](src-tauri/Info.plist) — `NSCameraUsageDescription` (WebKit's media
+    permission path also wants `NSMicrophoneUsageDescription`, so both are declared).
+  - [`entitlements.mac.plist`](src-tauri/entitlements.mac.plist) —
+    `com.apple.security.device.camera`, required because Tauri enables the hardened
+    runtime when signing. Wired up via `hardenedRuntime` + `entitlements` in
+    `tauri.conf.json`.
 
 ## Virtual camera output (Windows)
 

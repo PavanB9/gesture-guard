@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gesture Guard — a local privacy guard for your webcam</title>
+<meta name="description" content="Gesture Guard watches your webcam locally and blurs the feed the instant you yawn, touch your face, or someone walks in behind you. No cloud, no telemetry, no account. Free and open source for Windows and macOS." />
+<link rel="icon" href="icon.png" />
+<meta property="og:title" content="Gesture Guard — a local privacy guard for your webcam" />
+<meta property="og:description" content="Blurs your video call the instant you yawn, touch your face, or someone walks in behind you. Everything runs on your machine." />
+<meta property="og:image" content="icon.png" />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true">
+        <defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#8B74FF"/><stop offset="1" stop-color="#3A1CA8"/>
+        </linearGradient></defs>
+        <rect width="1024" height="1024" rx="232" fill="url(#bm)"/>
+        <path d="M316 312 Q316 290 340 290 L684 290 Q708 290 708 312 L708 548 C708 652 630 712 512 756 C394 712 316 652 316 548 Z" fill="#fff"/>
+        <circle cx="512" cy="498" r="134" fill="#1B0F52"/>
+        <circle cx="512" cy="498" r="52" fill="#35D0EE"/>
+      </svg>
+      Gesture Guard
+    </a>
+    <div class="nav-links">
+      <a class="nav-hide" href="#catches">What it catches</a>
+      <a class="nav-hide" href="#privacy">Privacy</a>
+      <a href="https://github.com/PavanB9/gesture-guard">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="download.html">Download</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Runs entirely on your machine</p>
+      <h1>Catches the yawn <em>before</em> your call does.</h1>
+      <p class="lede">
+        Gesture Guard watches your webcam and blurs the feed the instant you yawn,
+        touch your face, or someone walks in behind you — then clears the moment
+        you're presentable again. Nothing is uploaded. Nothing is recorded.
+      </p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="download.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download free
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/PavanB9/gesture-guard">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+          View source
+        </a>
+      </div>
+      <p class="hero-note">Free · Open source · Windows &amp; macOS · No account, no telemetry</p>
+    </div>
+
+    <!-- Signature element: the guard reacting, the way it does in the app. -->
+    <div class="vf">
+      <div class="vf-stage" id="stage">
+        <div class="vf-subject">
+          <svg viewBox="0 0 220 180" aria-hidden="true">
+            <g class="vf-intruder">
+              <circle cx="171" cy="70" r="19" fill="#39405c" />
+              <path d="M144 152c0-18 12-28 27-28s27 10 27 28z" fill="#39405c" />
+            </g>
+            <circle cx="96" cy="66" r="33" fill="#59637f" />
+            <path d="M42 172c0-32 24-50 54-50s54 18 54 50z" fill="#59637f" />
+          </svg>
+        </div>
+        <span class="vf-bracket tl"></span><span class="vf-bracket tr"></span>
+        <span class="vf-bracket bl"></span><span class="vf-bracket br"></span>
+        <div class="vf-chip">
+          <span class="vf-dot"></span>
+          <span id="chipText">MONITORING</span>
+          <span style="color:#5d6478">15 FPS</span>
+        </div>
+        <div class="vf-banner">
+          <b>PRIVACY GUARD ACTIVE</b>
+          <span id="bannerLabel">Blurring</span>
+        </div>
+      </div>
+      <dl class="vf-hud">
+        <div><dt>Status</dt><dd id="hStatus">Clear</dd></div>
+        <div><dt>MAR</dt><dd id="hMar">0.18</dd></div>
+        <div><dt>Touch</dt><dd id="hTouch">0.94</dd></div>
+        <div><dt>Faces</dt><dd id="hFaces">1</dd></div>
+      </dl>
+      <p class="vf-cap">Simulated preview · the real app runs on your webcam, locally</p>
+    </div>
+  </div>
+</header>
+
+<section class="section" id="catches">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Three detectors</p>
+      <h2>What it catches</h2>
+      <p class="lede">
+        Each detector has to see the behaviour hold for a moment before it fires, so a
+        blink or a scratch doesn't trip it. One sensitivity slider tunes all three.
+      </p>
+    </div>
+    <div class="cards">
+      <article class="card reveal">
+        <svg class="card-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M8 9h.01M16 9h.01"/><ellipse cx="12" cy="15.5" rx="3.5" ry="2.5"/></svg>
+        <h3>Yawning</h3>
+        <p>A sustained wide-open mouth. Measured as a mouth aspect ratio from the face mesh, so it scales with how close you sit.</p>
+        <div class="card-spec"><span>Signal <b>MAR</b></span><span>Holds <b>1.5s</b></span></div>
+      </article>
+      <article class="card reveal">
+        <svg class="card-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11V6a1.5 1.5 0 0 1 3 0v4"/><path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10"/><path d="M15 10V6.5a1.5 1.5 0 0 1 3 0V13c0 4-2.5 7-6 7s-6-2.5-6-6v-3a1.5 1.5 0 0 1 3 0"/></svg>
+        <h3>Face touching</h3>
+        <p>A hand lingering near your nose or eyes — grooming, rubbing, nose-picking. Distance is measured relative to your face width.</p>
+        <div class="card-spec"><span>Signal <b>hand→face</b></span><span>Holds <b>0.45s</b></span></div>
+      </article>
+      <article class="card reveal">
+        <svg class="card-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17.5" cy="9.5" r="2.4"/><path d="M15.5 19c0-2.6 1.4-4.3 3.5-4.3S22 16.4 22 19"/></svg>
+        <h3>Background intrusion</h3>
+        <p>A second person appears in frame behind you. Useful when you work somewhere with roommates, family, or foot traffic.</p>
+        <div class="card-spec"><span>Signal <b>face count</b></span><span>Holds <b>0.6s</b></span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="privacy">
+  <div class="wrap loop">
+    <div class="reveal">
+      <p class="eyebrow">Local by construction</p>
+      <h2>Nothing leaves your machine.</h2>
+      <p class="lede">
+        This is a privacy tool, so it doesn't get to make exceptions. The app window
+        captures your camera and passes frames to an engine running on localhost.
+        The guarded frame comes straight back. There is no server to send it to.
+      </p>
+      <ul class="loop-list">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> No cloud processing, no account, no sign-in</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> No telemetry or analytics of any kind</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Video is never written to disk</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Open source — read every line before you trust it</li>
+      </ul>
+    </div>
+    <div class="diagram reveal">
+      <div>your webcam</div>
+      <div>&nbsp;&nbsp;└─ app window · <span class="k">getUserMedia</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp; <span class="v">ws://127.0.0.1:&lt;port&gt;</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;privacy engine · <span class="k">MediaPipe</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp; safe frame</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;preview + virtual camera</div>
+      <div class="diagram-seal">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#35D0EE" stroke-width="2"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"/></svg>
+        <span><span class="x">0</span> external endpoints at runtime</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap split">
+    <div class="reveal">
+      <p class="eyebrow">Works with your call app</p>
+      <h2>Guard the feed Zoom actually receives.</h2>
+      <p class="lede">
+        Turn on the virtual camera and Gesture Guard publishes the already-protected
+        stream as a webcam. Your call app never sees the raw feed — only the guarded one.
+      </p>
+      <ol class="steps">
+        <li>Install <b>OBS Studio</b> once. You never have to open it — Gesture Guard drives the virtual camera device directly.</li>
+        <li>Switch on <b>Virtual camera</b> in the dashboard's Output section.</li>
+        <li>In Zoom, Teams, or Meet, pick <b>OBS Virtual Camera</b> as your camera.</li>
+      </ol>
+      <p class="hero-note">Tested on Windows. If no driver is present the toggle explains why and everything else keeps working.</p>
+    </div>
+    <div class="diagram reveal">
+      <div><span class="k">real webcam</span> → Gesture Guard</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ guarded frame</div>
+      <div><span class="v">OBS Virtual Camera</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div>
+      <div>Zoom · Teams · Meet</div>
+      <div class="diagram-seal">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#35D0EE" stroke-width="2" stroke-linecap="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <span>the raw feed never reaches the call</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section strip">
+  <div class="wrap reveal">
+    <h2>Stop trusting your own restraint.</h2>
+    <p class="lede" style="margin-inline:auto;max-width:520px">
+      Install it once, leave it running, forget about it. It only ever acts on your machine.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="download.html">Download for Windows &amp; macOS</a>
+      <a class="btn btn-ghost" href="https://github.com/PavanB9/gesture-guard">Read the source</a>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <span>Gesture Guard — a local webcam privacy guard.</span>
+    <span>
+      <a href="https://github.com/PavanB9/gesture-guard">GitHub</a> ·
+      <a href="https://github.com/PavanB9/gesture-guard/issues">Report an issue</a> ·
+      <a href="download.html">Download</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  if (!stage) return;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var f = {
+    chip: document.getElementById('chipText'),
+    label: document.getElementById('bannerLabel'),
+    status: document.getElementById('hStatus'),
+    mar: document.getElementById('hMar'),
+    touch: document.getElementById('hTouch'),
+    faces: document.getElementById('hFaces')
+  };
+
+  // Values track the real defaults: yawn fires above MAR 0.51, face-touch below
+  // a hand/face ratio of 0.475, intrusion at 2 faces (see src-backend/app/config.py).
+  var CLEAR = { status: 'Clear', mar: '0.18', touch: '0.94', faces: '1' };
+  var seq = [
+    { hold: 2600 },
+    { hold: 2400, label: 'Yawning',           status: 'Yawn',       mar: '0.58', touch: '0.91', faces: '1', hot: 'mar' },
+    { hold: 2200 },
+    { hold: 2400, label: 'Face touching',     status: 'Face touch', mar: '0.19', touch: '0.24', faces: '1', hot: 'touch' },
+    { hold: 2200 },
+    { hold: 2600, label: 'Background person', status: 'Intrusion',  mar: '0.18', touch: '0.88', faces: '2', hot: 'faces', intruder: true }
+  ];
+
+  function paint(s) {
+    var v = s.label ? s : CLEAR;
+    f.status.textContent = v.status;
+    f.mar.textContent = v.mar;
+    f.touch.textContent = v.touch;
+    f.faces.textContent = v.faces;
+    ['mar', 'touch', 'faces'].forEach(function (k) {
+      f[k].classList.toggle('hot', s.hot === k);
+    });
+    stage.classList.toggle('is-guarded', !!s.label);
+    stage.classList.toggle('show-intruder', !!s.intruder);
+    f.chip.textContent = s.label ? 'GUARDED' : 'MONITORING';
+    if (s.label) f.label.textContent = s.label;
+  }
+
+  if (reduce) { paint(seq[1]); return; }   // hold one guarded frame, no motion
+
+  var i = 0;
+  (function tick() {
+    paint(seq[i]);
+    var wait = seq[i].hold;
+    i = (i + 1) % seq.length;
+    setTimeout(tick, wait);
+  })();
+})();
+
+// Scroll reveals
+(function () {
+  var els = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(function (el) { el.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { rootMargin: '0px 0px -60px 0px' });
+  els.forEach(function (el) { io.observe(el); });
+})();
+</script>
+</body>
+</html>
